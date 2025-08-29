@@ -1,7 +1,7 @@
 # Paper: "Can't Stop: How Context and Personality Influence Effectiveness of Different Gradual Interventions for Infinite Scrolling on Short-Form Video Platforms"
 
 ## Authors
-[Luca-Maxim Meinhardt](https://scholar.google.de/citations?user=PD-594QAAAAJ&hl=de), [Manuela Dragić], [Mark Colley](https://scholar.google.de/citations?user=Kt5I7wYAAAAJ&hl=de&oi=ao), [Kai Lukoff](https://scholar.google.com/citations?user=o4EFr8EAAAAJ&hl=en), [Enrico Rukzio](https://scholar.google.de/citations?user=LEu4D5gAAAAJ&hl=de&oi=ao)
+[Luca-Maxim Meinhardt](https://scholar.google.de/citations?user=PD-594QAAAAJ&hl=de), [Manuela Dragić], [Mark Colley](https://scholar.google.de/citations?user=Kt5I7wYAAAAJ&hl=de&oi=ao), [Kai Lukoff](https://scholar.google.com/citations?user=o4EFr8EAAAAJ&hl=en), [Enrico Rukzio](https://scholar.google.com/citations?user=sJ0vjg0AAAAJ&hl=en)
 
 ## Paper Overview
 This paper titled **"Can't Stop: How Context and Personality Influence Effectiveness of Different Gradual Interventions for Infinite Scrolling on Short-Form Video Platforms"** ...
