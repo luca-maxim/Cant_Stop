@@ -1,11 +1,8 @@
-# Paper: "Can't Stop: How Context and Personality Influence Effectiveness of Different Gradual Interventions for Infinite Scrolling on Short-Form Video Platforms"
+Can't Stop: How Context and Personality Influence Effectiveness of Different Gradual Interventions for Infinite Scrolling on Short-Form Video Platforms
 
-## Authors
-[Luca-Maxim Meinhardt](https://scholar.google.de/citations?user=PD-594QAAAAJ&hl=de), [Manuela Dragić], [Mark Colley](https://scholar.google.de/citations?user=Kt5I7wYAAAAJ&hl=de&oi=ao), [Kai Lukoff](https://scholar.google.com/citations?user=o4EFr8EAAAAJ&hl=en), [Enrico Rukzio](https://scholar.google.com/citations?user=sJ0vjg0AAAAJ&hl=en)
 
-## Paper Overview
-This paper titled **"Can't Stop: How Context and Personality Influence Effectiveness of Different Gradual Interventions for Infinite Scrolling on Short-Form Video Platforms"** ...
-It investigates how various contextual factors and personality traits influence the effectiveness of interventions implemented during infinite scrolling on four major short-form video social media platforms. 
+## Abstract
+Infinite scrolling on short-form video platforms like TikTok encourages prolonged engagement, leading to post-usage regret. While interventions aim to mitigate such behavior, they often rely on non-adaptive strategies, overlooking that intervention effectiveness may depend on the interplay between intervention type, context, and personality. We conducted a 7-day field study (N=104) to compare three interventions: a baseline pop-up and two gradually intensifying design frictions (visual and haptic). Behavioral changes and user experience were evaluated using objective and subjective measures. Results show that pop-ups are initially effective but quickly lose impact, whereas visual gradual interventions sustain user experience the longest. Bayesian modeling revealed only limited interactions between contextual factors and intervention type. Instead, personality did interact, indicating that the choice of intervention matters for individuals with low self-control and high impulsivity. These findings highlight the limits of one-size-fits-all solutions and underscore the need for personality-tailored interventions for effective mitigation of infinite scrolling.
 
 ## Interventions
 After 15 minutes of uninterrupted scrolling, one of **three interventions** was triggered to reduce infinite scrolling: a baseline reminder, a visual intervention, or a haptic intervention. The two gradual interventions (visual and haptic) increased in intensity over a period of approximately 3 minutes and 31 seconds.
@@ -18,5 +15,3 @@ This intervention gradually obscures the screen with semi-transparent black spot
 ### Haptic Intervention
 This intervention delivers subtle vibrations that gradually increase in intensity and frequency, gently encouraging users to disengage from scrolling.  
 <img src="images/haptic.png" alt="Haptic Intervention" width="300"/>
-
-## Citation
