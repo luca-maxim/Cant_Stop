@@ -15,6 +15,7 @@ library(survival)
 library(survminer)
 library(emmeans)
 library(tidybayes)
+library(psych)
 
 # ---- Helper Functions ----
 # Numeric variable summary (min, max, mean, median, sd)
