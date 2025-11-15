@@ -259,12 +259,25 @@ pilot_df <- pilot_df %>%
 # ---- Compute Effectiveness Scores ----
 combined_measures <- c("Objective_Responsiveness", "Objective_Reactance", "Objective_GoalAlignment", "Objective_Satisfaction", "Objective_Agency", "Objective_Usefulness")
 objective_measures <- c("Objective_Responsiveness")
-subjective_measures <- c("Objective_Reactance", "Objective_GoalAlignment", "Objective_Satisfaction", "Objective_Agency", "Objective_Usefulness")
+subjective_measures <- main_df[, c("Objective_Reactance", "Objective_GoalAlignment", "Objective_Satisfaction", "Objective_Agency", "Objective_Usefullness")]
 
 pilot_df$combined_effectiveness <- rowMeans(pilot_df[combined_measures], na.rm = TRUE)
 main_df$Objective_Effectiveness <- rowMeans(main_df[objective_measures], na.rm = TRUE)
-main_df$Subjective_Effectiveness <- rowMeans(main_df[subjective_measures], na.rm = TRUE)
 
+# ---- Compute Factor Analysis ----
+fa(subjective_measures, nfactors = 1, rotate = "none")
+# ---- Calculate Cronbach's Alpha ----
+alpha(subjective_measures) 
+# ---- Calculate McDonald's Omega ----
+omega(subjective_measures)
+
+# ---- Compute Weighted Subjective Effectiveness based on Factor Loads ----
+weights <- c(0.49, 0.89, 0.88, 0.51, 0.85)
+normalized_weights <- weights / sum(weights)
+main_df$Subjective_Effectiveness <- rowSums(
+  sweep(main_df[, subjective_measures], 2, normalized_weights, "*"), 
+  na.rm = TRUE
+)
 
 
 ################################################################################
