@@ -3,7 +3,8 @@
 Published at [IMWUT](https://dl.acm.org/journal/imwut) (Proceedings of the ACM on Interactive, Mobile, Wearable and Ubiquitous Technologies).
 Paper preprint: [arXiv:2607.15818](https://arxiv.org/abs/2607.15818)
 
-**Authors**
+
+## Authors
 [Luca-Maxim Meinhardt](https://github.com/luca-maxim), [Manuela Dragic](https://github.com/ManuelaDragic), [Mark Colley](https://github.com/M-Colley), [Kai Lukoff](https://github.com/klukoff), Enrico Rukzio
 
 ## Abstract
