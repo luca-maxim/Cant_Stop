@@ -1,6 +1,6 @@
 # Can't Stop: How Context and Individual Traits Influence Effectiveness of Different Gradual Interventions for Infinite Scrolling on Short-Form Video Platforms
 
-Published at [IMWUT](https://dl.acm.org/journal/imwut) (Proceedings of the ACM on Interactive, Mobile, Wearable and Ubiquitous Technologies).
+Published at [IMWUT](https://dl.acm.org/journal/imwut) (Proceedings of the ACM on Interactive, Mobile, Wearable and Ubiquitous Technologies), September 2026.
 Paper preprint: [arXiv:2607.15818](https://arxiv.org/abs/2607.15818)
 
 
@@ -77,6 +77,7 @@ If you use this code or dataset, please cite the paper:
   author    = {Meinhardt, Luca-Maxim and Dragic, Manuela and Colley, Mark and Lukoff, Kai and Rukzio, Enrico},
   journal   = {Proceedings of the ACM on Interactive, Mobile, Wearable and Ubiquitous Technologies (IMWUT)},
   year      = {2026},
+  month     = {sep},
   note      = {arXiv:2607.15818}
 }
 ```
