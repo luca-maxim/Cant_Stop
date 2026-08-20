@@ -24,22 +24,6 @@ class EndNoteActivity : AppCompatActivity() {
             endAnswers.put("device", getDeviceName())
             Log.e("JSON", endAnswers.toString())
 
-            val helper = Helper();
-            /*helper.sendRequest(
-                this,
-                object : VolleyCallBack {
-                    override fun onSuccess(response: JSONObject?) {
-
-                    }
-
-                    override fun onFailure(errorResponse: JSONObject?) {
-
-                    }
-                },
-                "/user/addFeedback",
-                "POST",
-                endAnswers.toString()
-            )*/
             finish()
         }
     }

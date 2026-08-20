@@ -332,40 +332,6 @@ class MainActivity : AppCompatActivity() {
             }
         }
 
-        /*    val sharedPref = getSharedPreferences("InfiniteScroll", 0)
-            val isRegistered = sharedPref.getBoolean("Registered", false)
-            val code = sharedPref.getString("TEMP_CODE", "true")
-            val helper = Helper()
-
-            // Set study end timer should it be missing
-            if (sharedPref.getString("STUDY_END_TIMER", "DEFAULT") == "DEFAULT") {
-                val editor: SharedPreferences.Editor = sharedPref.edit()
-                val date = Date()
-                date.time = (date.time + 7 * 24 * 60 * 60 * 1000) // todo change to 7 days
-                editor.putString("STUDY_END_TIMER", date.toString())
-                editor.apply()
-            }
-
-            if (!isRegistered) {
-                val editor: SharedPreferences.Editor = sharedPref.edit()
-                // Set the end of the study
-                val date = Date()
-                date.time = (date.time + 7 * 24 * 60 * 60 * 1000)
-                editor.putString("STUDY_END_TIMER", date.toString())
-                editor.apply()
-
-                //val questionnaireAnswers = sharedPref.getString("questionnaireAnswers", "")
-                //val questionnaire = JSONObject(questionnaireAnswers)
-                //questionnaire.put("deviceModel", Build.MANUFACTURER + " - " + Build.MODEL)
-                //Log.e("Questionaire + Device", questionnaire.toString())
-                val history = JSONObject()
-                    .put("history", showUsageStats("test").toString())
-                    .put("dailyHistory", showUsageStats("daily").toString())
-
-                val activity = this;
-                val context = this;
-
-            }*/
 
     }
 
@@ -482,24 +448,6 @@ class MainActivity : AppCompatActivity() {
         builder.setMessage("Delete Preferences?").setPositiveButton("Yes", dialogClickListener)
             .setNegativeButton("No", dialogClickListener)
             .show()
-    }
-
-    @RequiresApi(Build.VERSION_CODES.N)
-    fun sendQuitStudy() {
-        val helper = Helper()
-        /*helper.sendRequest(
-            this,
-            object : VolleyCallBack {
-                override fun onSuccess(response: JSONObject?) {
-//                    Log.e("REFRESH RESPONSE", response.toString())
-                }
-
-                override fun onFailure(response: JSONObject?) {
-//                    Log.e("ERROR_RESPONSE", response.toString())
-                }
-            },
-            "/quit", "POST", null
-        )*/
     }
 
     override fun onDestroy() {
