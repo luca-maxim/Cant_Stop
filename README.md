@@ -4,11 +4,7 @@ Published at [IMWUT](https://dl.acm.org/journal/imwut) (Proceedings of the ACM o
 Paper preprint: [arXiv:2607.15818](https://arxiv.org/abs/2607.15818)
 
 **Authors**
-- [Luca-Maxim Meinhardt](https://github.com/luca-maxim)
-- [Manuela Dragic](https://github.com/ManuelaDragic)
-- [Mark Colley](https://github.com/M-Colley)
-- [Kai Lukoff](https://github.com/klukoff)
-- Enrico Rukzio
+[Luca-Maxim Meinhardt](https://github.com/luca-maxim), [Manuela Dragic](https://github.com/ManuelaDragic), [Mark Colley](https://github.com/M-Colley), [Kai Lukoff](https://github.com/klukoff), Enrico Rukzio
 
 ## Abstract
 Infinite scrolling on short-form video platforms like TikTok encourages prolonged engagement and post-usage regret. Interventions aim to mitigate such behavior, but their effectiveness may depend on the interplay between intervention type, contextual factors, and individual traits. In a 7-day within-subject randomized field study (N=104), we compared a baseline pop-up and two gradually intensifying design frictions (visual and haptic). We evaluated behavioral changes and user experience using objective and subjective measures. Results showed that the pop-up was initially effective but quickly lost impact, whereas the visual gradual intervention sustained subjective ratings the longest. Bayesian modeling revealed that self-regulation traits moderate how participants responded to the three intervention types. For participants with low impulsivity, the type of intervention had little influence on its subjective effectiveness. For participants with high impulsivity, however, differences between intervention types were substantial, with the explicit baseline pop-up being most effective compared to the novel gradual interventions. Contextual factors, in contrast, showed little influence. These findings suggest that intervention modality and individual differences in self-regulation shape intervention effectiveness.
