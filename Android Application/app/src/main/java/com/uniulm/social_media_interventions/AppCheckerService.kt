@@ -4,8 +4,6 @@ import android.accessibilityservice.AccessibilityService
 import android.accessibilityservice.AccessibilityServiceInfo
 import android.annotation.SuppressLint
 import android.app.*
-import android.app.usage.UsageStats
-import android.app.usage.UsageStatsManager
 import android.content.*
 import android.content.ContentValues.TAG
 import android.graphics.PixelFormat
@@ -15,15 +13,11 @@ import android.provider.Settings
 import android.util.Log
 import android.view.*
 import android.view.accessibility.AccessibilityEvent
-import android.view.accessibility.AccessibilityNodeInfo
 import android.widget.Button
 import android.widget.TextView
 import androidx.annotation.RequiresApi
 import com.google.firebase.firestore.FirebaseFirestore
 import com.rvalerio.fgchecker.AppChecker
-import kotlinx.coroutines.*
-import org.json.JSONArray
-import org.json.JSONObject
 import java.text.SimpleDateFormat
 import java.time.LocalDateTime
 import java.time.format.DateTimeFormatter
@@ -32,43 +26,40 @@ import java.util.*
 import kotlin.random.Random
 
 
+/**
+ * The core Accessibility Service: watches which app is in the foreground,
+ * detects when it's one of the tracked social-media apps
+ * ([packageIsRelevantApp]), and once the participant has been scrolling
+ * there for [scrollingTimer] seconds, randomly fires one of three
+ * interventions ([startOverlay], [startVibration],
+ * [startSpotOverlayService]). When the relevant app is left, opens the
+ * post-session questionnaire ([startQuestionnaire]).
+ *
+ * Runs as a foreground/accessibility service for the whole study duration;
+ * [onDestroy] restarts itself unless explicitly told to quit via the
+ * `"QUIT"` shared-preference flag (set by [ThankActivity.deleteSharedPrefs]).
+ */
 public class AppCheckerService : AccessibilityService() {
-    //here
     private val CHANNEL_ID = "id_smi01"
 
     companion object {
         var shouldStopOldNotification = false
     }
 
-    private val notificationIdStudyEnd = 102
-    private var notificationIdWarning = 103
-
-    var contentJSON = JSONObject()
     var screenOn = true;
     var isRelevantApp = false;
     var currentRelevantApp = ""
-    var appJSON = JSONObject()
     var iteration: Int = 0;
-    var i: Int = 1
 
-    private var timer: Timer? = null
-    private var timerCount: Int = 0
     val cooldown = 600
     val maxdur = cooldown + 120
 
-    //content var
-    var isRelevantContent = false;
-    var currentRelevantContent = ""
-    var lastRelevantContent = ""
     var questionnaireDisplayed = false;
     var intervention = 42
-    private var reelsSectionEnterTime: Long = 0
-    val reelsTimer = 30000
 
 
     private var floatingView: View? = null
     private var timerTextView: TextView? = null
-    var context = this
 
     lateinit var mainHandler: Handler
 
@@ -76,7 +67,6 @@ public class AppCheckerService : AccessibilityService() {
     var dtimerHandler: Handler? = null
     private var d_timer: Runnable? = null
     var startDelayTime: Long = 0
-    var dTimerStarted = false;
     var delayTimeInSeconds = 0L
     var pID = ""
     var package_name = ""
@@ -89,14 +79,8 @@ public class AppCheckerService : AccessibilityService() {
     var isRelevantAppOpen = false
     var previousValue: String? = "NO IS"
     var timeStampScrollTimerStarted = LocalDateTime.now()
-    var scrollingTimer = 10L // 10 s for testing
-    // var scrollingTimer = 30L // 30 s for testing luca
-    // var scrollingTimer = 60L // 60 s for testing
-    // var scrollingTimer = 120L // 2 minutes for testing
-    // var scrollingTimer = 300L // 5 minutes for testing
-    // var scrollingTimer = 900L // 15 minutes in seconds for study
+    var scrollingTimer = 900L // 15 minutes in seconds, matches the study
     var OverlayShowed = false
-    var isNotificationShown = false
     val packageNameQueue: ArrayDeque<String> = ArrayDeque(10)
     var lastForegroundApp: String? = null
     var OverlayClicked = false
@@ -104,21 +88,7 @@ public class AppCheckerService : AccessibilityService() {
 
     //    VARs Luca
     var lastRelevantApp: String? = null
-    val myPackageName =
-        "com.uniulm.social_media_interventions"  // Replace with your app's package name
-    val relevantApps =
-        setOf("com.twitter.android", "com.google.android.youtube")  // Add relevant package names
-    var lastEventTime = 0L
-    val debounceTime = 5000  // 1 second
     var isOverlayBeingDismissed = false
-    val mainHandlerTimer = Handler(Looper.getMainLooper())
-
-    // close delayTimer
-    private var isAppClosing = false
-    private val closeDelayMillis = 2000 // 2 seconds
-    private var closeTimer: CountDownTimer? = null
-    private val coroutineScope = CoroutineScope(Dispatchers.Main)
-    private var delayJob: Job? = null
 
     var isRelevantcontentOpen = false
 
@@ -155,6 +125,11 @@ public class AppCheckerService : AccessibilityService() {
     lateinit var vibrationRunnable: Runnable
 
 
+    /**
+     * Registers a receiver that starts [startChecker] when the screen is
+     * unlocked, and tears down any running intervention/timer when the
+     * screen turns off.
+     */
     private fun registerBroadcastReceivers() {
         // Register a broadcast receiver to listen for screen off/on events to stop and start the timer
         // as it does not need to listen when the screen is off. Also stops a running session if the screen
@@ -191,9 +166,6 @@ public class AppCheckerService : AccessibilityService() {
                         stopVibration()
                         stopDelayTimer()
 
-                        // startQuest_screenoff()
-                        if (appJSON.has("appName")) {
-                        }
                         mainHandler.removeCallbacks(getAppTask)
                     }
 
@@ -218,6 +190,12 @@ public class AppCheckerService : AccessibilityService() {
         mainHandler.post(getAppTask)
     }
 
+    /**
+     * Called when the system tries to destroy this service. Restarts the
+     * service via a fresh [startForegroundService] call unless the
+     * `"QUIT"` shared-preference flag was explicitly set (e.g. by
+     * [ThankActivity.deleteSharedPrefs]), in which case it's allowed to stop.
+     */
     @RequiresApi(VERSION_CODES.O)
     override fun onDestroy() {
         // As we don't want the service to be destroyed, check the source which wants to destroy the
@@ -311,11 +289,6 @@ public class AppCheckerService : AccessibilityService() {
                 "com.facebook.katana" -> {
                     if (currentRelevantApp == "com.facebook.katana" && iteration < maxdur) {
                         // Same app all good
-                        /*timeRunning = refreshTimeRunning(delayMillis, iteration)
-                        iteration++
-                        if (iteration % 5==0){
-                            startVibration()
-                        }*/
                         timeRunning = refreshTimeRunning(delayMillis, iteration)
                         iteration++
                         if (iteration >= cooldown && iteration % 5 == 0) {
@@ -469,38 +442,25 @@ public class AppCheckerService : AccessibilityService() {
 
 
     /**
-     * Creates the app JSON using the package name and current Date.
-     * Also sets the isRelevantApp and currentRelevantApp
+     * Marks the given package as the currently tracked relevant app.
      */
     fun startAppJSON(packageName: String) {
         val appName = getAppName(packageName)
-        appJSON
-            .put("appName", appName)
-            .put("startDate", Date())
 
         val sharedPref = getSharedPreferences("InfiniteScroll", 0)
         val editor: SharedPreferences.Editor = sharedPref.edit()
         editor.putString("App_Name", appName)
         editor.apply()
 
-        Log.d("START APP JSON", appJSON.toString())
-        //  startFirstQuestionaire()
         isRelevantApp = true;
         currentRelevantApp = packageName;
-
-        if (checkViewHierarchy(getRootInActiveWindow(), 0) != null) {
-
-            var hierachycontent = checkViewHierarchy(getRootInActiveWindow(), 0).toString()
-            var content = getContentFromViewHierarchy(hierachycontent)
-            if (!isRelevantContent) {
-                if (content != null) {
-                    startContentJSON(content)
-                }
-            }
-        }
     }
 
 
+    /**
+     * Computes the elapsed running time from [iteration]/[delayMillis] and
+     * records the current timestamp as `"t2"` in shared preferences.
+     */
     fun refreshTimeRunning(delayMillis: Int, iteration: Int): Long {
         var timeRunning: Long = (iteration * delayMillis / 1000).toLong()
         val sharedPref = getSharedPreferences("InfiniteScroll", 0)
@@ -510,36 +470,33 @@ public class AppCheckerService : AccessibilityService() {
         val formatter = DateTimeFormatter.ofPattern("dd-MM HH:mm:ss")
         var formatted = current2.format(formatter)
         editor.putString("t2", formatted)
-        //editor.putString("Delta", (iteration*(1.4)).toString())
         editor.apply()
         return timeRunning
     }
 
 
+    /**
+     * Clears the currently tracked relevant-app state without opening the
+     * questionnaire (used when the user switches away before the cooldown
+     * has elapsed).
+     */
     fun reset() {
         intervention = 42
         isRelevantApp = false;
         currentRelevantApp = "";
-        appJSON = JSONObject()
     }
 
     /**
-     * finishes the app JSON and sends it to the server as a session.
+     * Stops the current session and opens the questionnaire.
      * Also resets app variables.
      */
     @RequiresApi(VERSION_CODES.O)
     fun startQuestionnaire() {
         Log.d("TAG", "Different app -> Stopped scrolling")
-        //addEndDateToAppJSON(appJSON);
-        Log.d("FINAL APP JSON", appJSON.toString())
 
-        fun onFailure(response: JSONObject?) {
-            // todo cache sessions and try later?
-        }
         intervention = 42
         isRelevantApp = false;
         currentRelevantApp = "";
-        appJSON = JSONObject()
 
         // openQuestionaire
         val intent = Intent(this, rhsci1_activity::class.java)
@@ -558,20 +515,6 @@ public class AppCheckerService : AccessibilityService() {
         stopSpotOverlayService()
         stopVibration()
         stopDelayTimer()
-
-//        Toast.makeText(
-//            this,
-//            "Questionnaire Opening", Toast.LENGTH_SHORT
-//        ).show()
-
-    }
-
-    fun startQuest_screenoff() {
-        val intent = Intent(this, rhsci1_activity::class.java)
-        intent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
-
-        startActivity(intent)
-
     }
 
     /**
@@ -651,12 +594,6 @@ public class AppCheckerService : AccessibilityService() {
             "com.zhiliaoapp.musically" -> {
                 true
             }
-            /*"com.ninegag.android.app" -> {
-                true
-            }*/
-            /*"com.pinterest" -> {
-                true
-            }*/
             "com.google.android.youtube" -> {
                 true
             }
@@ -698,108 +635,14 @@ public class AppCheckerService : AccessibilityService() {
         }
         val now = Date()
         val date = Date(sendAliveTimer)
-//        return true
         return date < now
     }
 
 
-    fun scheduleNotification(context: Context) {
-
-    }
-
     /**
-     * Checks the end timer of the study. If 7 days are over handle the finish of the study
+     * Re-arms the send-alive timer; called once [checkSendAliveTimer]
+     * reports it has expired.
      */
-    @RequiresApi(VERSION_CODES.O)
-    fun checkStudyEndTimer(): Boolean {
-        val sharedPref: SharedPreferences = this.getSharedPreferences("InfiniteScroll", 0)
-        val notificationTimer = sharedPref.getString("STUDY_END_TIMER", "true")
-        if (notificationTimer == null || notificationTimer == "true") {
-            return false
-        }
-
-        val now = Date()
-        val date = Date(notificationTimer)
-        if (date < now) {
-            Log.e("STUDY_OVER", "OVER")
-            val editor: SharedPreferences.Editor = sharedPref.edit()
-            editor.putString("QUIT", "true")
-            editor.apply()
-            val intent = Intent(this, AppCheckerService::class.java)
-            stopService(intent)
-        }
-        return date < now
-    }
-
-    /**
-     * Gets and add the usage stats of the android device.
-     */
-    fun getUsageStats(): String {
-        val usageStatsManager =
-            this.getSystemService(USAGE_STATS_SERVICE) as UsageStatsManager
-
-        val cal: Calendar = Calendar.getInstance()
-        cal.add(Calendar.DAY_OF_MONTH, -7)
-        val queryUsageStats: List<UsageStats> = usageStatsManager.queryUsageStats(
-            UsageStatsManager.INTERVAL_DAILY,
-            cal.timeInMillis,
-            System.currentTimeMillis()
-        )
-        var statsData: String = ""
-        for (i in 0..queryUsageStats.size - 1) {
-            if (queryUsageStats.get(i).totalTimeInForeground > 0) {
-                if (packageIsRelevantApp(queryUsageStats.get(i).packageName)) {
-                    statsData =
-                        statsData + "Package Name : " + queryUsageStats.get(i).packageName + "\n" +
-                                "Last Time Used : " + convertTime(queryUsageStats.get(i).lastTimeUsed) + "\n" +
-                                "Total time in foreground : " + (queryUsageStats.get(i).totalTimeInForeground / 1000) + "seconds" + "\n" + "\n"
-                }
-            }
-        }
-        return statsData
-    }
-
-    /**
-     * Converts the time stamp to a usable time object.
-     */
-    private fun convertTime(lastTimeUsed: Long): String {
-        val date = Date(lastTimeUsed)
-        val format = SimpleDateFormat("dd/MM/yyyy hh:mm a", Locale.ENGLISH)
-        return format.format(date)
-    }
-
-
-    /**
-     * Sends the end notification
-     */
-    /*   private fun sendEndNotification(title: String, message: String) {
-   //        setNotificationTimer()
-
-           val intent = Intent(applicationContext, EndNoteActivity::class.java)
-           intent.flags = Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TASK
-
-           val pendingIntent =
-               PendingIntent.getActivity(
-                   applicationContext,
-                   1,
-                   intent,
-                   PendingIntent.FLAG_ONE_SHOT
-               )
-
-           val builder = NotificationCompat.Builder(this, CHANNEL_ID)
-               .setSmallIcon(R.drawable.ic_stat_name)
-               .setContentTitle(title)
-               .setContentText(message)
-               .setPriority(NotificationCompat.PRIORITY_DEFAULT)
-               .setContentIntent(pendingIntent)
-               .setAutoCancel(true)
-
-           with(NotificationManagerCompat.from(this)) {
-               notify(notificationIdStudyEnd, builder.build())
-           }
-       }*/
-
-
     @RequiresApi(VERSION_CODES.O)
     fun sendAliveTag() {
         setSendAliveTimer()
@@ -824,13 +667,10 @@ public class AppCheckerService : AccessibilityService() {
         }
     }
 
-    /*
-    override fun onBind(intent: Intent?): IBinder? {
-        TODO("Not yet implemented")
-    }
-*/
-
-    //to check if the permission overlay is still running
+    /**
+     * Returns whether "draw over other apps" is currently granted, used to
+     * check the permission overlay is still running.
+     */
     fun Context.drawOverOtherAppsEnabled(): Boolean {
         return if (Build.VERSION.SDK_INT < VERSION_CODES.M) {
             true
@@ -840,68 +680,11 @@ public class AppCheckerService : AccessibilityService() {
     }
 
 
-    fun startFirstQuestionaire() {
-
-    }
-
-    private fun startContentJSON(content: String) {
-        if (appJSON.has("appName")) {
-            if (contentJSON.has("contentName")) {
-                return
-            }
-            contentJSON
-                .put("contentName", content)
-                .put("startDate", Date())
-
-            val sharedPref = getSharedPreferences("InfiniteScroll", 0)
-            val editor: SharedPreferences.Editor = sharedPref.edit()
-            editor.putString("contentName", content)
-            editor.apply()
-            Log.e("START CONTENT JSON", contentJSON.toString())
-            //  startOverlay()
-            isRelevantContent = true;
-            //  currentRelevantContent = getContent(content);
-        }
-    }
-
     /**
-     * Adds the enddate to the appJSON
+     * Classifies an Instagram accessibility-event content description as
+     * `"IS"` (infinite-scroll feed content), `"NO IS"` (a non-feed screen
+     * like search or messages), or `""` (unrecognized).
      */
-    fun addEndDateToAppJSON(appJSON: JSONObject) {
-        appJSON
-            .put("endDate", Date())
-    }
-
-    fun finishContentJSON() {
-        if (contentJSON.has("contentName")) {
-            contentJSON
-                .put("endDate", Date())
-            addContentToAppJSON()
-            isRelevantContent = false;
-            lastRelevantContent = contentJSON.getString("contentName")
-            //    currentRelevantContent = "";
-            Log.e("FINAL Content JSON", contentJSON.toString())
-            contentJSON = JSONObject()
-
-        }
-    }
-
-    /**
-     * Adds the contentJSON to the AppJSON
-     */
-    fun addContentToAppJSON() {
-        var newJSON = JSONArray()
-
-        if (!appJSON.has("contentArray")) {
-            newJSON.put(contentJSON)
-            appJSON.put("contentArray", newJSON)
-        } else {
-            var oldJSON = appJSON.getJSONArray("contentArray")
-            oldJSON.put(contentJSON)
-            appJSON.put("contentArray", oldJSON)
-        }
-    }
-
     fun isRelevantInstagramContent(content: String): String {
 
         if (content.contains("Home")) {
@@ -914,14 +697,6 @@ public class AppCheckerService : AccessibilityService() {
             return "IS"
         }
 
-        // Problematisch wegen "Profile Picture of ..."
-        /*if (content.contains("Profile")) {
-            return "NO IS"
-        }*/
-        // same bei storys
-        /*if (content.contains("story")) {
-            return "NO IS"
-        }*/
         // wenn Videos auf der Explore Page starten startets trotzdem
         if (content.contains("Search")) {
             return "NO IS"
@@ -944,6 +719,11 @@ public class AppCheckerService : AccessibilityService() {
         return ""
     }
 
+    /**
+     * Classifies a YouTube accessibility-event content description as
+     * `"IS"` (Shorts, an infinite-scroll feed), `"NO IS"` (a non-feed
+     * screen), or `""` (unrecognized). See [isRelevantInstagramContent].
+     */
     fun isRelevantYoutubeContent(content: String): String {
 
         if (content.contains("Shorts")) {
@@ -974,6 +754,11 @@ public class AppCheckerService : AccessibilityService() {
     }
 
 
+    /**
+     * Classifies a TikTok accessibility-event content description as
+     * `"IS"` (an infinite-scroll feed tab), `"NO IS"` (a non-feed screen),
+     * or `""` (unrecognized). See [isRelevantInstagramContent].
+     */
     fun isRelevantTiktokContent(content: String): String {
 
         if (content.contains("Home")) {
@@ -1012,6 +797,11 @@ public class AppCheckerService : AccessibilityService() {
     }
 
 
+    /**
+     * Classifies a Facebook accessibility-event content description as
+     * `"IS"` (video/reel feed content), `"NO IS"` (a non-feed screen), or
+     * `""` (unrecognized). See [isRelevantInstagramContent].
+     */
     fun isRelevantFacebookContent(content: String): String {
 
         if (content.contains("Video")) {
@@ -1044,230 +834,15 @@ public class AppCheckerService : AccessibilityService() {
         if (content.contains("Chats")) {
             return "NO IS"
         }
-        // Search auch Problematisch, weil das manchmal einfach drin steht
-        /*if (content.contains("Search")) {
-            return "NO IS"
-        }*/
-        // Problematisch wegen "Profile Picture of ..."
-        /*if (content.contains("Profile")) {
-            return "NO IS"
-        }*/
         return ""
     }
 
 
-    // removed because no video format
-    fun isRelevantTwitterContent(content: String): String {
-        if (content.contains("Communities")) {
-            return "IS"
-        }
-        if (content.contains("Home")) {
-            return "IS"
-        }
-        if (content.contains("Explore")) {
-            return "IS"
-        }
-
-        if (content.contains("Search and Explore")) {
-            return "NO IS"
-        }
-        if (content.contains("Spaces")) {
-            return "NO IS"
-        }
-        if (content.contains("Trends")) {
-            return "NO IS"
-        }
-        if (content.contains("Tweet")) {
-            return "NO IS"
-        }
-        if (content.contains("Notifications")) {
-            return "NO IS"
-        }
-        if (content.contains("Messages")) {
-            return "NO IS"
-        }
-        if (content.contains("New post")) {
-            return "NO IS"
-        }
-        if (content.contains("timeline")) {
-            return "NO IS"
-        }
-        if (content.contains("Grok")) {
-            return "NO IS"
-        }
-        return ""
-    }
-
-
-    // removed because no video format
-    // todo Reddit anpassen
-    fun isRelevantRedditContent(content: String): String {
-        if (content.contains("Home")) {
-            return "IS"
-        }
-
-        if (content.contains("Communities")) {
-            return "NO IS"
-        }
-        if (content.contains("Chat")) {
-            return "NO IS"
-        }
-        if (content.contains("Inbox")) {
-            return "NO IS"
-        }
-        if (content.contains("Create")) {
-            return "NO IS"
-        }
-        return ""
-    }
-
-
-    @RequiresApi(VERSION_CODES.JELLY_BEAN_MR2)
-    fun checkViewHierarchy(nodeInfo: AccessibilityNodeInfo, depth: Int): String? {
-
-        if (nodeInfo == null) return null;
-        var content = ""
-
-        /* if (currentRelevantApp == "com.facebook.katana") {
-             if (nodeInfo.className != null) {
-                 content += nodeInfo.className.toString()
-             }
-             if (nodeInfo.contentDescription != null) {
-
-                 content += nodeInfo.contentDescription.toString()
-             }
-         }else {
-             if (nodeInfo.viewIdResourceName != null) {
-                 content += nodeInfo.viewIdResourceName.toString()
-             }
-             if (nodeInfo.contentDescription != null) {
-                 content += nodeInfo.contentDescription.toString()
-             }
-         }*/
-
-
-        if (nodeInfo.viewIdResourceName != null) {
-            content += nodeInfo.viewIdResourceName.toString()
-        }
-        if (nodeInfo.contentDescription != null) {
-            content += nodeInfo.contentDescription.toString()
-        }
-
-        try {
-            for (i in 0..nodeInfo.getChildCount() - 1) {
-                if (nodeInfo.getChild(i) != null) {
-                    content += " " + checkViewHierarchy(nodeInfo.getChild(i), depth + 1);
-                }
-            }
-        } catch (e: NullPointerException) {
-            e.printStackTrace()
-        }
-        //  Log.e("ViewHierarchycontent",content)
-        return content
-    }
-
-    fun getContentFromViewHierarchy(content: String): String? {
-
-        if (currentRelevantApp == "com.instagram.android") {
-            if (content.contains("left_product_tile", false)) {
-                return "Shop";
-            }
-            if (content.contains("action_bar_titleExplore", false)) {
-                return "SearchandExplorePosts";
-            }
-            if (content.contains("action_bar_search_edit_text", false)) {
-                return "Search and explore";
-            }
-            if (content.contains("action_bar_titleReels", false)) {
-                return "SearchandExploreReels";
-            }
-            if (content.contains("action_bar_large_titleReels", false)) {
-                return "Reels";
-            }
-            if (content.contains("row_profile_header_imageview", false)) {
-                return "Profile";
-            }
-            return "Home"
-        }
-
-        //todo Twitter hinzufügen
-        if (currentRelevantApp == "com.twitter.android") {
-            if (content.contains(
-                    "com.twitter.android:id/toolbar_settings_notifNotification Settings",
-                    false
-                )
-            ) {
-                return "Notifications"
-            }
-            if (content.contains(
-                    "com.twitter.android:id/toolbar_timeline_switchTop Tweets",
-                    false
-                )
-            ) {
-                return "Home"
-            }
-            if (content.contains(
-                    "com.twitter.android:id/trends_menu_settingsTrends settings",
-                    false
-                )
-            ) {
-                return "Search and Explore"
-            }
-            if (content.contains(
-                    "com.twitter.android:id/search_activity_tabs Top  Latest  People  Photos  Videos",
-                    false
-                )
-            ) {
-                return "Trend";
-            }
-            if (content.contains("com.twitter.android:id/outer_layout_row_view_tweet", false)) {
-                return "Tweet";
-
-            }
-
-        }
-
-        /*     if (currentRelevantApp == "com.facebook.katana") {
-                 if (content.contains(
-                         "android.view.ViewFeed",
-                         false
-                     )
-                 ) {
-                     return "Feed"
-                 }
-                 if (content.contains(
-                         "android.view.ViewVideo",
-                         false
-                     )
-                 ) {
-                     return "Video"
-                 }
-             }*/
-
-        // todo
-        if (currentRelevantApp == "com.reddit.frontpage") {
-            if (content.contains("com.reddit.frontpage:id/home_screen", false)) {
-                return "Home"
-            }
-        }
-
-
-        /*  if(currentRelevantApp =="com.google.android.youtube"){
-              if(content.contains("com.google.android.youtube:id/home",false)){
-                  return "Home"
-              }
-              if(content.contains("com.google.android.youtube:id/shorts",false)){
-                  return "Shorts"
-              }
-              if(content.contains("com.google.android.youtube:id/library",false)){
-                  return "Library"
-              }
-          }*/
-
-        Log.e("Viewcontent", content)
-        return null
-    }
-
+    /**
+     * Configures which accessibility events this service receives (clicks,
+     * scrolls, window/content changes) and registers the screen on/off
+     * broadcast receivers once the system connects the service.
+     */
     override fun onServiceConnected() {
         super.onServiceConnected()
         Log.e(TAG, "Try to connect")
@@ -1275,7 +850,6 @@ public class AppCheckerService : AccessibilityService() {
         info.apply {
             // Set the type of events that this service wants to listen to. Others
             // won't be passed to this service.
-            //eventTypes = AccessibilityEvent.TYPE_VIEW_CLICKED or AccessibilityEvent.TYPE_VIEW_FOCUSED
             eventTypes =
                 AccessibilityEvent.CONTENT_CHANGE_TYPE_CONTENT_DESCRIPTION or AccessibilityEvent.TYPE_VIEW_CLICKED or AccessibilityEvent.TYPE_VIEW_SCROLLED or AccessibilityEvent.TYPE_WINDOW_CONTENT_CHANGED or AccessibilityEvent.TYPE_WINDOW_STATE_CHANGED
 
@@ -1286,55 +860,11 @@ public class AppCheckerService : AccessibilityService() {
             flags =
                 AccessibilityServiceInfo.FLAG_REPORT_VIEW_IDS or AccessibilityServiceInfo.FLAG_RETRIEVE_INTERACTIVE_WINDOWS or AccessibilityServiceInfo.FLAG_REQUEST_TOUCH_EXPLORATION_MODE;
 
-
-            //     createNotificationChannel()
             registerBroadcastReceivers()
 
-            val notificationIntent = Intent(applicationContext, MainActivity::class.java)
-            /* val pendingIntent = PendingIntent.getActivity(
-                 applicationContext,
-                 0, notificationIntent, 0
-             )*/
-            /* val notification: Notification = Notification.Builder(applicationContext, CHANNEL_ID)
-                 .setContentTitle("InfinteScape")
-                 .setContentText("Thank you for Participating in this Study. You can quit anytime by deleting the app")
-                 .setSmallIcon(R.drawable.ic_stat_name)
-                 .setContentIntent(pendingIntent)
-                 .build()
-             // Start the foreground notification to allow constant tracking
-             startForeground(1, notification)*/
             if (shouldStopOldNotification) {
-                //    stopForeground()
-                //cancel here
                 shouldStopOldNotification = false
             }
-            val sharedPref = getSharedPreferences("InfiniteScroll", 0)
-            /* if (!isNotificationShown) {
-                  val notification: Notification =
-                      Notification.Builder(applicationContext, CHANNEL_ID)
-                          .setContentTitle("InfinteScape")
-                          .setContentText("Thank you for participating in this study. You can quit anytime by deleting the app")
-                          .setSmallIcon(com.uniulm.social_media_interventions.R.drawable.ic_stat_name)
-                          .setContentIntent(pendingIntent)
-                          .setOngoing(true)
-                          .setDefaults(0)
-                          .build()
-
-
-  //                val notificationManager =
-  //                    getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager
-  //                // Publish the notification
-  //                notificationManager.notify(1, notification)
-                  // Update SharedPreferences to indicate that the notification has been shown
-                  val editor = sharedPref.edit()
-                  isNotificationShown = true
-                  editor.apply()
-                  // Start the foreground notification to allow constant tracking
-                  startForeground(1, notification)
-
-                  var pID = sharedPref.getString("pID", null)
-                  Log.e("ARRIVAL PID", pID.toString())
-              }*/
         }
 
         this.setServiceInfo(info)
@@ -1342,6 +872,11 @@ public class AppCheckerService : AccessibilityService() {
 
     }
 
+    /**
+     * Returns the package name that occurs most often in the recent-events
+     * queue [packageNameQueue], used to smooth over noisy/transient
+     * foreground-app readings.
+     */
     fun findMostFrequentPackageName(packageNames: ArrayDeque<String>): String? {
         if (packageNames.isEmpty()) return null
 
@@ -1365,6 +900,22 @@ public class AppCheckerService : AccessibilityService() {
         return mostFrequentPackageName
     }
 
+    /**
+     * The central event handler, fired on every relevant accessibility
+     * event (clicks, scrolls, window/content changes) across the whole
+     * device. Per event, it:
+     * 1. Tracks the foreground package via [addPackageNameToArray] /
+     *    [findMostFrequentPackageName], and detects when a tracked app was
+     *    closed (event type 32) to tear down any active overlay/vibration
+     *    and stop the scroll/delay timers.
+     * 2. If [scrollingTimer] has elapsed while a tracked app is open,
+     *    randomly triggers one of [startOverlay], [startVibration], or
+     *    [startSpotOverlayService].
+     * 3. Runs a per-app `when` block (YouTube, Facebook, Instagram, TikTok,
+     *    Reddit, Twitter) that starts the scroll/delay timers on first
+     *    entry and uses the app-specific `isRelevant*Content` classifier to
+     *    detect transitions into/out of infinite-scroll content.
+     */
     override fun onAccessibilityEvent(event: AccessibilityEvent?) {
 
         var content = event?.contentDescription.toString()
@@ -1403,25 +954,7 @@ public class AppCheckerService : AccessibilityService() {
             powerManager.isIgnoringBatteryOptimizations(getPackageName())
         Log.e("booleans", ignoringBatteryOptimizations.toString())
 
-//        if (event?.eventType == 32 && packageName != "com.uniulm.social_media_interventions") {
-//            // Cancel the previous job if it's still running
-//            delayJob?.cancel()
-//            Log.e("delaytime", "inside first if")
-//            // Start a new delay job
-//            delayJob = coroutineScope.launch {
-//                delay(2000)  // Wait for 2 seconds
-//                Log.e("delaytime", "inside delay Job")
-//                // Check if Instagram is still the foreground app
-//                val currentApp = findMostFrequentPackageName(packageNameQueue).toString()
-//                if (getAppName(packageName) != "Instagram") {
-//                    // Instagram is considered to be closed
-//                    Log.e("delaytime", "IG closed")
-//                }
-//            }
-//        }
-
         if (lastRelevantApp != packageName) {
-//            Log.e("booleans", "lastApp = currentApp")
             lastRelevantApp = packageName
         }
 
@@ -1446,7 +979,6 @@ public class AppCheckerService : AccessibilityService() {
                             isRelevantAppOpen = false
                             Log.e("Relevant App closed", "start Questionnaire")
                             startQuestionnaire()
-                            // Log.e("delaytest", getAppName(packageName).toString())
                             OverlayShowed = false
                         }
                         if (!isOverlayBeingDismissed) {  // Add this condition
@@ -1487,15 +1019,9 @@ public class AppCheckerService : AccessibilityService() {
                         timerStarted = false
                         isRelevantAppOpen = false
                         stopDelayTimer()
-//                        infinte = false
                     }
                 }, 200)
             }
-
-// CHeck if keyboard is opend
-//            if (getText.toString() != "") {  // Generic check
-//                infinte = false
-//            }
         }
 
 
@@ -1524,96 +1050,6 @@ public class AppCheckerService : AccessibilityService() {
 
 
         when (getAppName(packageName)) {
-
-            // removed because no video format
-            /*"Twitter" -> {
-
-                try {
-                    if (!isRelevantAppOpen) {
-                        isRelevantAppOpen = true
-                    }
-                    if (!timerStarted && infinte) {
-                        Log.e("10minTimer", "Start")
-                        startScrollTimer()
-                        timerStarted = true
-                    }
-                    if (isRelevantTwitterContent(content) != "" && isRelevantTwitterContent(content) != previousValue) {
-                        if ((isRelevantTwitterContent(content) == "IS" && previousValue == "NO IS") || (isRelevantTwitterContent(
-                                content
-                            ) == "NO IS" && previousValue == "IS")
-                        ) {
-                            if (previousValue == "NO IS") {
-                                infinte = true
-                            } else if (previousValue == "IS") {
-                                infinte = false
-                                timerStarted = false
-                            }
-                            if (infinte) {
-                                if (!timerStarted && !isRelevantcontentOpen) {
-                                    isRelevantcontentOpen = true
-                                    Log.e("10minTimer", "Start")
-                                    startScrollTimer()
-                                    timerStarted = true
-                                }
-                            } else {
-                                if (timerStarted) {
-                                    Log.e("10minTimer", "Stop")
-                                    isRelevantcontentOpen = false
-                                    timerStarted = false
-                                }
-                            }
-                        }
-                        previousValue = isRelevantTwitterContent(content)
-                    }
-                } catch (e: Exception) {
-                    Log.e("CONTENTEXCEPTION", "An exception occurred: ${e.message}")
-                }
-            }*/
-
-            // removed because no video format
-            /*"Reddit" -> {
-
-                try {
-                    if (!isRelevantAppOpen) {
-                        isRelevantAppOpen = true
-                    }
-                    if (!timerStarted && infinte) {
-                        Log.e("10minTimer", "Start")
-                        timerStarted = true
-                        startScrollTimer()
-                    }
-                    if (isRelevantRedditContent(content) != "" && isRelevantRedditContent(content) != previousValue) {
-                        if ((isRelevantRedditContent(content) == "IS" && previousValue == "NO IS") || (isRelevantRedditContent(
-                                content
-                            ) == "NO IS" && previousValue == "IS")
-                        ) {
-                            if (previousValue == "NO IS") {
-                                infinte = true
-                            } else if (previousValue == "IS") {
-                                infinte = false
-                                timerStarted = false
-                            }
-                            if (infinte) {
-                                if (!timerStarted && !isRelevantcontentOpen) {
-                                    isRelevantcontentOpen = true
-                                    Log.e("10minTimer", "Start")
-                                    startScrollTimer()
-                                    timerStarted = true
-                                }
-                            } else {
-                                if (timerStarted) {
-                                    Log.e("10minTimer", "Stop")
-                                    isRelevantcontentOpen = false
-                                    timerStarted = false
-                                }
-                            }
-                        }
-                        previousValue = isRelevantRedditContent(content)
-                    }
-                } catch (e: Exception) {
-                    Log.e("CONTENTEXCEPTION", "An exception occurred: ${e.message}")
-                }
-            }*/
 
             "YouTube" -> {
 
@@ -1689,7 +1125,6 @@ public class AppCheckerService : AccessibilityService() {
                         Log.e("10minTimer", "Start")
                         startScrollTimer()
                         timerStarted = true
-                        //isRelevantAppOpen = true // das hier anders zu Insta
                     }
                     if (!startdelaytime_started && infinte) {
                         Log.e("10minTimer", "Start")
@@ -1881,11 +1316,14 @@ public class AppCheckerService : AccessibilityService() {
 
             else -> {
                 isRelevantAppOpen = false
-                // timerStarted = false
             }
         }
     }
 
+    /**
+     * Appends [packageName] to [packageNameQueue], a fixed-size (10) FIFO
+     * history of recently seen foreground packages.
+     */
     fun addPackageNameToArray(packageName: String) {
         // Check if the queue is already at max capacity
         if (packageNameQueue.size == 10) {
@@ -1896,11 +1334,18 @@ public class AppCheckerService : AccessibilityService() {
         packageNameQueue.addLast(packageName)
     }
 
+    /**
+     * Records the current time as the start of the scrolling session, used
+     * by [isScrollTimerExpired] to decide when to trigger an intervention.
+     */
     private fun startScrollTimer() {
         timeStampScrollTimerStarted = LocalDateTime.now()
         Log.e("startScrollTimer", "started,  $packageName")
     }
 
+    /**
+     * Returns whether [scrollingTimer] seconds have elapsed since [otherTime].
+     */
     private fun isScrollTimerExpired(otherTime: LocalDateTime): Boolean {
         // Adding scrollingTimer to the input LocalDateTime instance
         val addScrollingTimer = otherTime.plus(scrollingTimer, ChronoUnit.SECONDS)
@@ -1913,84 +1358,18 @@ public class AppCheckerService : AccessibilityService() {
     }
 
 
-    /*private fun startTimer() {
-        /*
-         timer?.cancel()
-         timer = Timer()
-         timer?.scheduleAtFixedRate(object : TimerTask() {
-             override fun run() {
-                 timerCount++
 
-                 Log.d("Reels Timer", "Time : $timerCount seconds")
-             }
-         }, 1000, 1000) //  repeat every 1000ms (1 second)
-        // startFloatingView()
-         //updateTimerUI()
-        /* val inflater = getSystemService(Context.LAYOUT_INFLATER_SERVICE) as LayoutInflater
-         floatingView = inflater.inflate(R.layout.floating_timer_layout, null)
-         timerTextView = floatingView?.findViewById(R.id.timerTextView)
-         timerTextView?.setText("Timer:" + timerCount)*/
-          */
-        mainHandler.postDelayed({
-
-            // startFirstQuestionaire()
-            startOverlay()
-            Log.e("STARTOVERLAY", "OVERLAY INTERVENTION")
-        }, 5000)
-        timer?.cancel()
-        timer = Timer()
-        timer?.scheduleAtFixedRate(object : TimerTask() {
-            override fun run() {
-                timerCount++
-
-                Log.d("Reels Timer", " $timerCount")
-                //   updateTimerUI()
-            }
-        }, 1000, 1000)
-
-        // startFloatingView()
-
-    }*/
-
-
-    private fun updateTimerUI() {
-        timerTextView?.text = " $timerCount"
-    }
-
-    fun startFloatingView() {
-
-        val inflater = LayoutInflater.from(this)
-        floatingView = inflater.inflate(R.layout.floating_timer_layout, null)
-        timerTextView = floatingView?.findViewById(R.id.timerTextView)
-        updateTimerUI()
-
-        // Add the floating view to the window manager
-        val params = WindowManager.LayoutParams(
-            WindowManager.LayoutParams.WRAP_CONTENT,
-            WindowManager.LayoutParams.WRAP_CONTENT,
-            WindowManager.LayoutParams.TYPE_APPLICATION_OVERLAY,
-            WindowManager.LayoutParams.FLAG_NOT_FOCUSABLE or
-                    WindowManager.LayoutParams.FLAG_NOT_TOUCH_MODAL,
-            PixelFormat.TRANSLUCENT
-        )
-
-        val windowManager = getSystemService(WINDOW_SERVICE) as WindowManager
-        windowManager.addView(floatingView, params)
-    }
-
-    private fun stopTimer() {
-        timer?.cancel()
-        timer = null
-        timerCount = 0
-
-    }
-
+    /**
+     * The "Pop-Up" intervention: shows a full-screen overlay with a
+     * "Dismiss" button over the tracked app, prompting the participant to
+     * close it. Also starts the delay timer that measures how long they
+     * take to actually close the app afterward.
+     */
     @SuppressLint("SuspiciousIndentation")
     fun startOverlay() {
         // Sets the intervention type
         interventionType = "Pop-Up"
 
-        //    mainHandler.postDelayed({
         Log.e("OVERLAY", "START")
         startdelaytime_started = true
         startDelayTimer()
@@ -2008,9 +1387,6 @@ public class AppCheckerService : AccessibilityService() {
 
         AppNameToBeShownInOverlay =
             getAppName(findMostFrequentPackageName(packageNameQueue).toString())
-        // val appName = getAppName(packageName)
-
-        //timerTextView?.text = " You spent $timerCount  on Instagram"
         timerTextView?.text = "Time to close \n" + AppNameToBeShownInOverlay
 
         Log.d(
@@ -2033,32 +1409,11 @@ public class AppCheckerService : AccessibilityService() {
         val windowManager = getSystemService(WINDOW_SERVICE) as WindowManager
         windowManager.addView(floatingView, params)
 
-        /*    val viewTreeObserver = floatingView?.viewTreeObserver
-
-            viewTreeObserver?.addOnWindowFocusChangeListener { hasFocus ->
-                if (hasFocus) {
-                    // Remove focus from the overlay (set focus to 0)
-                    floatingView?.clearFocus()
-                }
-            }*/
-
         val closeButton = floatingView?.findViewById<Button>(R.id.buttonCloseOverlay)
 
-        /*
-    closeButton?.setOnTouchListener { view, motionEvent ->
-        if (motionEvent.action == MotionEvent.ACTION_UP) {
-            windowManager.removeView(floatingView)
-            startDelayTimer()
-            true
-        } else {
-            false
-        }
-    }
-*/
         // Set button text to "Dismiss"
         closeButton?.text = "Dismiss"
         closeButton?.setOnClickListener {
-            //   closeButton.isFocusable=true
             windowManager.removeView(floatingView)
             floatingView = null
             infinte = true
@@ -2067,14 +1422,17 @@ public class AppCheckerService : AccessibilityService() {
             OverlayClicked = true
             isOverlayBeingDismissed = false
         }
-        //   closeButton?.isFocusable=false
-        //   }, 10000)
-        //}
 
         Log.d("AppCheckerService", "Start overlay")
     }
 
 
+    /**
+     * Starts a per-second counter that tracks how long the participant
+     * remains in the tracked app after an intervention was triggered;
+     * elapsed time is read back out (and logged to Firestore) by
+     * [stopDelayTimer].
+     */
     fun startDelayTimer() {
         d_timer_value = 0
         d_timer = Runnable {
@@ -2093,14 +1451,17 @@ public class AppCheckerService : AccessibilityService() {
         AppNameToBeShownInOverlay = getAppName(findMostFrequentPackageName(packageNameQueue).toString())
     }
 
+    /**
+     * Stops the timer started by [startDelayTimer], computes the elapsed
+     * "time to close" duration, and uploads it to Firestore's `delay_time`
+     * collection.
+     */
     fun stopDelayTimer() {
-        // startFirstQuestionaire()
         var elapsedTimeInMinutes = 0L
         if (startdelaytime_started == true) {
 
             val dID = Settings.Secure.getString(contentResolver, Settings.Secure.ANDROID_ID)
             dtimerHandler?.removeCallbacks(d_timer!!)
-            // d_timer_value=0
 
             Log.d("DelayTimer", "Stopped")
 
@@ -2148,26 +1509,20 @@ public class AppCheckerService : AccessibilityService() {
             )
             db.collection("delay_time").add(data)
             Log.d("DelayTimer", "DelayTime added $delayTimeInSeconds")
-            //startdelaytime_started == false //?
             startdelaytime_started = false
         }
         else {
             Log.d("DelayTimer", "DelayTime set to zero: $delayTimeInSeconds $elapsedTimeInMinutes")
-            /*   val intent=Intent(this ,rhsci_activity::class.java)
-            intent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
-            startActivity(intent)*/
-            /*   if(AccessibilityEvent.WINDOWS_CHANGE_FOCUSED){
-                startFirstQuestionaire()
-            }*/
-            // startQuestionnaire()
         }
 
-        //startdelaytime_started == false //?
         startdelaytime_started = false
         delayTimeInSeconds = 0
         elapsedTimeInMinutes = 0
     }
 
+    /**
+     * Removes the [startOverlay] pop-up view from the window, if showing.
+     */
     fun stopOverlay() {
         floatingView?.let {
             val windowManager = getSystemService(WINDOW_SERVICE) as WindowManager
@@ -2177,15 +1532,15 @@ public class AppCheckerService : AccessibilityService() {
         OverlayShowed = false
         Log.e("OVERLAY", "STOP" + isRelevantcontentOpen.toString())
 
-        /* Handler().postDelayed({
-                windowManager2.removeViewImmediate(blinkView)
-                blink_initialized = false
-            }, 1000)*/
         Log.d("AppCheckerService", "overlay stopped")
     }
 
 
-    // start vibration intervention
+    /**
+     * The "Vibration" intervention: vibrates the device in a gradually
+     * intensifying pulse pattern (increasing amplitude, shrinking pauses)
+     * for about 3.5 minutes to nudge the participant to put the phone down.
+     */
     fun startVibration() {
 
         if (VibrationStarted) {
@@ -2282,7 +1637,9 @@ public class AppCheckerService : AccessibilityService() {
     }
 
 
-    // stops the vibration Intervention
+    /**
+     * Cancels an in-progress [startVibration] intervention.
+     */
     fun stopVibration() {
         if (::vibrationHandler.isInitialized && VibrationStarted) {
             VibrationStarted = false;
@@ -2293,13 +1650,11 @@ public class AppCheckerService : AccessibilityService() {
     }
 
 
-    // starts the Spotoverlay Intervention
+    /**
+     * The "SpotOverlay" intervention: starts [SpotOS], the service that
+     * draws gradually appearing/animating spots over the tracked app.
+     */
     fun startSpotOverlayService() {
-
-        /*if (SpotOverlayShowed) {
-            Log.e("DEBUG", "Spot Overlay Service läuft bereits! Abbruch.")
-            return
-        }*/
 
         // Sets the intervention type
         interventionType = "SpotOverlay"
@@ -2327,7 +1682,10 @@ public class AppCheckerService : AccessibilityService() {
     }
 
 
-    // stops the SpotOverlay Intervention
+    /**
+     * Tells [SpotOS] to remove all spots and stop, ending an in-progress
+     * [startSpotOverlayService] intervention.
+     */
     fun stopSpotOverlayService() {
 
         if (SpotOverlayShowed) {
@@ -2344,21 +1702,10 @@ public class AppCheckerService : AccessibilityService() {
 
     }
 
-    /*
-        fun onResumeApp() {
-            val prefs = getSharedPreferences("OverlayPrefs", Context.MODE_PRIVATE)
-            val overlayActive = prefs.getBoolean("overlayActive", false)
-
-            if (overlayActive) {
-                val elapsedTimeMillis = prefs.getLong("elapsedTime", 0)
-                // Resume overlay
-                startOverlay()
-                // Calculate timerCount based on elapsed time
-                timerCount = (elapsedTimeMillis / 1000).toInt()
-                startTimer()
-            }
-        }*/
-
+    /**
+     * Required by [AccessibilityService]; unused, as this service doesn't
+     * need to react to being interrupted.
+     */
     override fun onInterrupt() {
 
     }

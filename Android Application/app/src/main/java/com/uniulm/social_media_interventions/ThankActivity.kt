@@ -4,8 +4,6 @@ import android.Manifest
 import android.app.*
 import android.app.AppOpsManager.MODE_ALLOWED
 import android.app.AppOpsManager.OPSTR_GET_USAGE_STATS
-import android.app.usage.UsageStats
-import android.app.usage.UsageStatsManager
 import android.content.Context
 import android.content.Context.ACTIVITY_SERVICE
 import android.content.Context.APP_OPS_SERVICE
@@ -16,7 +14,6 @@ import android.content.pm.PackageManager
 import android.net.Uri
 import android.os.Build
 import android.os.Bundle
-import android.os.Debug
 import android.os.Process
 import android.provider.Settings
 import android.provider.Settings.*
@@ -26,12 +23,16 @@ import androidx.annotation.RequiresApi
 import androidx.appcompat.app.AppCompatActivity
 import androidx.core.content.ContextCompat.getSystemService
 import kotlinx.android.synthetic.main.activity_main.*
-import kotlinx.coroutines.Delay
-import org.json.JSONObject
 import java.lang.System
-import java.text.SimpleDateFormat
 import java.util.*
 
+/**
+ * The main "study is running" screen participants land on between sessions.
+ * Ensures [AppCheckerService] (the accessibility service that detects and
+ * triggers interventions) is running, and makes sure a `STUDY_END_TIMER` is
+ * set so the study reliably ends after 7 days even if [TimerService]'s alarm
+ * is missed.
+ */
 class ThankActivity : AppCompatActivity() {
 
     private val CHANNEL_ID = "channel_id_example_01"
@@ -42,36 +43,12 @@ class ThankActivity : AppCompatActivity() {
         createNotificationChannel()
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_thank)
-        //quitButton.getBackground().setAlpha(50);
         var intent = Intent(this, AppCheckerService::class.java)
-
-
-
-
-
-
-
-
-
-        /*if (!isAppCheckerServiceRunning()) {
-            quitButton.setEnabled(false)
-            // Start the app checker service
-
-            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
-                startForegroundService(intent);
-            } else {
-                startService(intent)
-            }
-        }*/
-
-
-
 
         // Check if permissions are given
         if (getGrantStatus()) {
             // Check if the service is already running. If not start the foreground service
             if (!isAppCheckerServiceRunning()) {
-                //quitButton.setEnabled(false)
                 // Start the app checker service
 
                 if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
@@ -111,21 +88,10 @@ class ThankActivity : AppCompatActivity() {
     override fun onStart() {
         super.onStart()
         var intent = Intent(this, AppCheckerService::class.java)
-        /*if (!isAppCheckerServiceRunning()) {
-            quitButton.setEnabled(false)
-            // Start the app checker service
-
-            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
-                startForegroundService(intent);
-            } else {
-                startService(intent)
-            }
-        }*/
         // Check if permissions are given
         if (getGrantStatus()) {
             // Check if the service is already running. If not start the foreground service
             if (!isAppCheckerServiceRunning()) {
-                //quitButton.setEnabled(false)
                 // Start the app checker service
 
                 if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
@@ -140,115 +106,9 @@ class ThankActivity : AppCompatActivity() {
 
     }
 
-
-    /**
-     * Gets and add the usage stats of the android device.
-     */
-    fun showUsageStats(getString: String?): String? {
-
-        val usageStatsManager: UsageStatsManager =
-            getSystemService(Context.USAGE_STATS_SERVICE) as UsageStatsManager
-        val cal: Calendar = Calendar.getInstance()
-        cal.add(Calendar.DAY_OF_MONTH, -30)
-        val queryUsageStats: List<UsageStats> = usageStatsManager.queryUsageStats(
-            UsageStatsManager.INTERVAL_WEEKLY,
-            cal.timeInMillis,
-            System.currentTimeMillis()
-        )
-        if (getString == "daily") {
-            val queryUsageStats: List<UsageStats> = usageStatsManager.queryUsageStats(
-                UsageStatsManager.INTERVAL_DAILY,
-                cal.timeInMillis,
-                System.currentTimeMillis()
-            )
-        }
-        var statsData: String = ""
-        for (i in 0..queryUsageStats.size - 1) {
-            if (queryUsageStats.get(i).totalTimeInForeground > 0) {
-                if (packageIsRelevantApp(queryUsageStats.get(i).packageName)) {
-                    statsData =
-                        statsData + "Package Name : " + queryUsageStats.get(i).packageName + "\n" +
-                                "Last Time Used : " + convertTime(queryUsageStats.get(i).lastTimeUsed) + "\n" +
-                                "Total time in foreground : " + (queryUsageStats.get(i).totalTimeInForeground / 1000) + "seconds" + "\n" + "\n"
-                }
-            }
-        }
-//        usageStats.setText(statsData)
-        if (getString != null) {
-            return statsData
-        }
-        return null
-    }
-
-    /*fun changequitButton(view: View?) {
-        if (quitcheckBox.isChecked) {
-
-            quitButton.setEnabled(true);
-            quitButton.getBackground().setAlpha(255);
-        } else {
-
-            quitButton.setEnabled(false);
-            quitButton.getBackground().setAlpha(50);
-        }
-
-    }*/
-
     override fun onPause() {
         super.onPause()
         finish()
-    }
-
-    /**
-     * Converts the time stamp to a usable time object.
-     */
-    private fun convertTime(lastTimeUsed: Long): String {
-        val date = Date(lastTimeUsed)
-        val format = SimpleDateFormat("dd/MM/yyyy hh:mm a", Locale.ENGLISH)
-        return format.format(date)
-    }
-
-    /**
-     * Returns a boolean whether the current app is a relevant app.
-     */
-    fun packageIsRelevantApp(packageName: String): Boolean {
-        return when (packageName) {
-            "com.facebook.android" -> {
-                true
-            }
-            "com.facebook.katana" -> {
-                true
-            }
-            "com.instagram.android" -> {
-                true
-            }
-            "com.reddit.frontpage" -> {
-                true
-            }
-            "com.andrewshu.android.reddit" -> {
-                true
-            }
-            "com.rubenmayayo.reddit" -> {
-                true
-            }
-            "free.reddit.news" -> {
-                true
-            }
-            "com.zhiliaoapp.musically" -> {
-                true
-            }
-            "com.ninegag.android.app" -> {
-                true
-            }
-            "com.pinterest" -> {
-                true
-            }
-            "com.twitter.android" -> {
-                true
-            }
-            else -> {
-                false
-            }
-        }
     }
 
     /**
@@ -304,6 +164,12 @@ class ThankActivity : AppCompatActivity() {
         return false
     }
 
+    /**
+     * Wired via `android:onClick` in `activity_thank.xml`/`activity_main.xml`.
+     * Prompts for confirmation, then clears the study's shared-preferences
+     * state and stops [AppCheckerService] — used to reset the app during
+     * testing/debugging.
+     */
     fun deleteSharedPrefs(view: View) {
         val dialogClickListener =
             DialogInterface.OnClickListener { dialog, which ->

@@ -23,110 +23,32 @@ import java.text.SimpleDateFormat
 import java.util.*
 
 
+/**
+ * Central "study is active" activity, entered from [WelcomeActivity]/
+ * [PermissionActivity] and re-entered on every app restart. Shows an
+ * ongoing notification appropriate to the current study state (mid-study,
+ * study completed, or permissions need re-checking after being killed),
+ * makes sure [TimerService] and [AppCheckerService] are running, and
+ * restarts [AppCheckerService] again in [onDestroy] if the study isn't over.
+ */
 class MainActivity : AppCompatActivity() {
 
-    //  private val CHANNEL_ID = "channel_id_example_01"
     var startstudy = Calendar.getInstance()
     var app_destroyed = false
     val CHANNEL_ID = "thanks"
     var notificationId = 1210
-    val startStudyDateFormat = SimpleDateFormat("MMM d HH:mm:ss", Locale.getDefault())
-    val formattedStartStudy = startStudyDateFormat.format(startstudy.time)
 
-    var last_checkout_format = ""
-    var pid_val = ""
-
-    @RequiresApi(Build.VERSION_CODES.N)
-
-    val reciever: BroadcastReceiver = object : BroadcastReceiver() {
-        override fun onReceive(context: Context, intent: Intent) {
-            setContentView(R.layout.activity_finalquestionnaire)
-        }
-    }
-
+    /**
+     * Shows the appropriate ongoing notification for the current state
+     * (study still running vs. final questionnaire pending), then makes
+     * sure [TimerService] and [AppCheckerService] are started.
+     */
     override fun onCreate(savedInstanceState: Bundle?) {
-        // createNotificationChannel()
         super.onCreate(savedInstanceState)
-        // val sharedPref = getSharedPreferences("InfiniteScroll", 0)
-        //finalquest_started= sharedPref.getBoolean("finalquest_started", false)
 
         val sharedPref = getSharedPreferences("InfiniteScroll", 0)
 
         var finalquest_started = sharedPref.getBoolean("finalquest_started", false)
-
-        //  sharedPref.edit().putBoolean("finalquest_main", finalquest_started).apply()
-        /*  if(!finalquest_started) {
-              setContentView(R.layout.activity_main)
-              Log.e("destroy", "onCreate should be false : $finalquest_started")
-
-              val notificationIntent = Intent(applicationContext, MainActivity::class.java)
-              val pendingIntent = PendingIntent.getActivity(
-                  applicationContext,
-                  0, notificationIntent, 0 or PendingIntent.FLAG_IMMUTABLE
-              )
-              val builder = Notification.Builder(applicationContext, CHANNEL_ID)
-                  .setContentTitle("InfinteScape")
-                  .setContentText("Thank you for participating in this study. You can quit anytime by deleting the app")
-                  .setSmallIcon(R.drawable.ic_stat_name)
-                  .setContentIntent(pendingIntent)
-                  .setOngoing(true)
-                  .setVisibility(Notification.VISIBILITY_PUBLIC)
-                  .setFullScreenIntent(pendingIntent, true)
-
-              val channel = NotificationChannel(CHANNEL_ID, name, importance).apply {
-                  description = descriptionText
-              }
-
-              /*   with(NotificationManagerCompat.from(context)) {
-
-                     notify(notificationId, builder.build())
-                 }*/
-              val notificationManager = getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager
-              notificationManager.notify(notificationId, builder.build())
-              notificationManager.createNotificationChannel(channel)
-          }
-
-          else if(finalquest_started) {
-
-              Log.e("destroy", "contentview starting")
-              // setContentView(R.layout.activity_finalquestionnaire)
-              setContentView(R.layout.activity_finalquestionnaire)
-              val name = "Last Questionnaire"
-              val importance = NotificationManager.IMPORTANCE_HIGH
-              val descriptionText = "Click to open the last questionnaire"
-              val questionnaireIntent = Intent(applicationContext, FinalQuestionnaire::class.java).apply {
-                  flags = Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TASK
-              }
-
-              val pendingIntent = PendingIntent.getActivity(applicationContext, 0, questionnaireIntent, 0 or PendingIntent.FLAG_IMMUTABLE)
-              val builder = NotificationCompat.Builder(applicationContext, CHANNEL_ID)
-                  .setSmallIcon(R.drawable.ic_stat_name)
-                  .setContentTitle("Last Questionnaire")
-                  .setContentText("Click to confirm that you have completed the study")
-                  .setContentIntent(pendingIntent)
-                  .setPriority(NotificationCompat.PRIORITY_HIGH)
-                  .setVisibility(NotificationCompat.VISIBILITY_PUBLIC)
-                  .setFullScreenIntent(pendingIntent, true)
-                  .setOngoing(true)
-
-              val channel = NotificationChannel(CHANNEL_ID, name, importance).apply {
-                  description = descriptionText
-              }
-
-              with(NotificationManagerCompat.from(applicationContext)) {
-                  notify(notificationId, builder.build())
-              }
-
-              val notificationManager = applicationContext.getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager
-
-              notificationManager.createNotificationChannel(channel)
-
-              finalquest_started=true
-              sharedPref.edit().putBoolean("finelquest_started",finalquest_started);
-
-          }
-          else */
-
 
         if (!finalquest_started) {
             Log.e("destroy", "appdestroyed and finalquest not there yet in onCreate()")
@@ -158,10 +80,6 @@ class MainActivity : AppCompatActivity() {
                     description = descriptionText
                 }
 
-                /*   with(NotificationManagerCompat.from(context)) {
-
-                   notify(notificationId, builder.build())
-               }*/
                 val notificationManager =
                     getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager
 
@@ -192,11 +110,6 @@ class MainActivity : AppCompatActivity() {
                 val channel = NotificationChannel(CHANNEL_ID, name, importance).apply {
                     description = descriptionText
                 }
-
-                /*   with(NotificationManagerCompat.from(context)) {
-
-                       notify(notificationId, builder.build())
-                   }*/
 
                 val notificationManager =
                     getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager
@@ -300,11 +213,9 @@ class MainActivity : AppCompatActivity() {
             }
         }
 
-        //quitButton.getBackground().setAlpha(50);
         var intent = Intent(this, AppCheckerService::class.java)
 
         var started = sharedPref.getBoolean("startstudy", false)
-        //  Log.e("STUDYTIMER","MAIN BEFORE"+startstudy)
 
         if (started == false) {
             Log.e("BUGFIX", "timer hasnt started yet: $started")
@@ -335,21 +246,6 @@ class MainActivity : AppCompatActivity() {
 
     }
 
-    /*fun changequitButton(view: View?) {
-        if (quitcheckBox.isChecked) {
-            quitButton.setEnabled(true);
-            quitButton.getBackground().setAlpha(255);
-        }
-        else {
-            quitButton.setEnabled(false);
-            quitButton.getBackground().setAlpha(50);
-        }
-    }*/
-
-    /**
-     * Converts the time stamp to a usable time object.
-     */
-
     /**
      * check if PACKAGE_USAGE_STATS permission is allowed for this application
      * @return true if permission granted
@@ -375,26 +271,6 @@ class MainActivity : AppCompatActivity() {
     }
 
     /**
-     * Creates the Channel used for notifications.
-     */
-    /* private fun createNotificationChannel() {
-         // Create the NotificationChannel, but only on API 26+ because
-         // the NotificationChannel class is new and not in the support library
-         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
-             val name = "Notfication title"
-             val descriptionText = "Notfication desc"
-             val importance = NotificationManager.IMPORTANCE_HIGH
-             val channel = NotificationChannel(CHANNEL_ID, name, importance).apply {
-                 description = descriptionText
-             }
-             // Register the channel with the system
-             val notificationManager: NotificationManager =
-                 getSystemService(NOTIFICATION_SERVICE) as NotificationManager
-             notificationManager.createNotificationChannel(channel)
-         }
-     }*/
-
-    /**
      * Checks if the service is already running
      */
     private fun isAppCheckerServiceRunning(): Boolean {
@@ -407,13 +283,11 @@ class MainActivity : AppCompatActivity() {
         return false
     }
 
-    fun changetoQuestionnaire(view: View) {
-        val intent = Intent(this, rhsci_activity::class.java)
-
-        overridePendingTransition(android.R.anim.fade_in, android.R.anim.fade_out)
-        startActivity(intent)
-    }
-
+    /**
+     * Wired via `android:onClick` in the layout. Prompts for confirmation,
+     * then clears the study's shared-preferences state and stops
+     * [AppCheckerService] — used to reset the app during testing/debugging.
+     */
     fun deleteSharedPrefs(view: View) {
         val dialogClickListener =
             DialogInterface.OnClickListener { dialog, which ->
@@ -450,6 +324,13 @@ class MainActivity : AppCompatActivity() {
             .show()
     }
 
+    /**
+     * If the study is still running, restarts [AppCheckerService] and shows
+     * a "check permissions" notification (the accessibility service is
+     * killed along with the activity, so it needs to be relaunched). If the
+     * study has already finished, shows the "study completed" notification
+     * instead.
+     */
     override fun onDestroy() {
         super.onDestroy()
 
@@ -532,11 +413,6 @@ class MainActivity : AppCompatActivity() {
                 description = descriptionText
             }
 
-            /*   with(NotificationManagerCompat.from(context)) {
-
-               notify(notificationId, builder.build())
-           }*/
-
             val notificationManager =
                 getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager
 
@@ -547,10 +423,6 @@ class MainActivity : AppCompatActivity() {
             sendBroadcast(Intent("YouWillNeverKillMe"))
 
             Log.e("AppDestroy", "true")
-            /*if(comp == true && permissionsgiv == true){
-            setContentView(R.layout.activity_main)
-            finish()
-        }*/
         }
 
     }

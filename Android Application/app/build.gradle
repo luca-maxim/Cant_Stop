@@ -9,14 +9,6 @@ apply plugin: 'com.android.application'
 apply plugin: 'com.google.gms.google-services'
 
 
-// Study backend endpoint/credentials, kept out of source control.
-// Copy app/study.properties.example to app/study.properties and fill in your own values.
-def studyPropertiesFile = rootProject.file("app/study.properties")
-def studyProperties = new Properties()
-if (studyPropertiesFile.exists()) {
-    studyProperties.load(new FileInputStream(studyPropertiesFile))
-}
-
 android {
     compileSdkVersion 33
     buildToolsVersion "30.0.3"
@@ -33,10 +25,6 @@ android {
         dataBinding{
             enabled=true
         }
-
-        buildConfigField "String", "STUDY_SERVER_URL", "\"${studyProperties.getProperty('STUDY_SERVER_URL', 'http://localhost:5000')}\""
-        buildConfigField "String", "STUDY_SERVER_USERNAME", "\"${studyProperties.getProperty('STUDY_SERVER_USERNAME', 'user')}\""
-        buildConfigField "String", "STUDY_SERVER_PASSWORD", "\"${studyProperties.getProperty('STUDY_SERVER_PASSWORD', 'password')}\""
 
         testInstrumentationRunner "androidx.test.runner.AndroidJUnitRunner"
         ndk {
@@ -59,7 +47,6 @@ android {
     }*/
     buildFeatures {
         viewBinding true
-        buildConfig true
     }
     useLibrary  'org.apache.http.legacy'
     compileOptions {
@@ -96,27 +83,6 @@ dependencies {
     testImplementation 'junit:junit:4.+'
     androidTestImplementation 'androidx.test.ext:junit:1.1.2'
     androidTestImplementation 'androidx.test.espresso:espresso-core:3.3.0'
-
-    //Nextcloud dependencies
-    implementation 'com.squareup.okhttp3:okhttp:4.9.3'
-    implementation 'com.squareup.okhttp3:logging-interceptor:4.9.3'
-    implementation 'com.squareup.retrofit2:retrofit:2.9.0'
-    implementation 'com.squareup.retrofit2:converter-gson:2.9.0'
-    //implementation 'com.jakewharton.retrofit:retrofit2-kotlinx-serialization-converter:<version>'
-    //implementation 'com.nextcloud.android:nextcloud-android-client:2.999.0'
-    //implementation 'com.owncloud.android:library:0.9.1'
-
-    //implementation 'org.apache.httpcomponents:httpmime:4.5.13'
-    //implementation 'com.nextcloud.android:client:3.3.0'
-    //compile 'com.github.nextcloud:android-library:0.11.0'
-
-    //compile 'com.github.nextcloud:android-library:2.14.0'
-
-
-
-    //Limesurvey dependencies
-    //implementation 'com.google.code.gson:gson:2.8.5'
-    //compile 'org.apache.httpcomponents:httpcore:4.4.1'
 
     implementation 'androidx.lifecycle:lifecycle-viewmodel-ktx:2.4.0'
 

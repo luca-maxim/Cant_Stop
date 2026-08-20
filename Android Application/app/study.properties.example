@@ -1,7 +1,0 @@
-# Copy this file to study.properties (same folder) and fill in the endpoint
-# and credentials for the backend that receives study data.
-# study.properties is gitignored and must never be committed.
-
-STUDY_SERVER_URL=http://your-server:5000
-STUDY_SERVER_USERNAME=user
-STUDY_SERVER_PASSWORD=change-me

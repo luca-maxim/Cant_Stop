@@ -19,6 +19,13 @@ import android.view.View
 import android.view.WindowManager
 import kotlin.random.Random
 
+/**
+ * Implements the visual "gradual intervention": a full-screen overlay
+ * [Service] that scatters semi-transparent black spots ([SpotOverlayView])
+ * over the screen with increasing speed, gradually obscuring the scrolling
+ * content. Started/stopped by [AppCheckerService] via
+ * `startSpotOverlayService()`/`stopSpotOverlayService()`.
+ */
 class SpotOS : Service() {
     private lateinit var windowManager: WindowManager
     private lateinit var spotOverlayView: SpotOverlayView
@@ -41,6 +48,10 @@ class SpotOS : Service() {
         graduallyCreateSpots()
     }
 
+    /**
+     * Handles the "ACTION_REMOVE_SPOTS" command sent by [AppCheckerService]
+     * to clear the overlay and stop the service.
+     */
     override fun onStartCommand(intent: Intent?, flags: Int, startId: Int): Int {
         if (intent?.action == "ACTION_REMOVE_SPOTS") {
             removeAllSpots()
@@ -49,6 +60,10 @@ class SpotOS : Service() {
         return START_STICKY
     }
 
+    /**
+     * Adds the transparent, full-screen [spotOverlayView] to the window
+     * manager as a system overlay.
+     */
     private fun setupOverlay() {
         val screenSize = Point()
         windowManager.defaultDisplay.getSize(screenSize)
@@ -64,6 +79,9 @@ class SpotOS : Service() {
         windowManager.addView(spotOverlayView, layoutParams)
     }
 
+    /**
+     * Decodes the twelve spot drawables used to render the overlay.
+     */
     private fun loadSpotBitmaps() {
         val drawableIds = listOf(
             R.drawable.spot1_2, R.drawable.spot2_2, R.drawable.spot3_2,
@@ -76,6 +94,12 @@ class SpotOS : Service() {
         }
     }
 
+    /**
+     * Schedules all 3000 spots to appear over [totalTime], split into three
+     * phases that speed up over time (1% of spots slowly, 10% at medium
+     * speed, then the remaining 89% quickly) to create the "gradually
+     * intensifying" effect.
+     */
     private fun graduallyCreateSpots() {
         val phaseOneDuration = (totalTime * 0.45).toLong() // 50% of the total time for the slow initial phase
         val phaseTwoDuration = (totalTime * 0.4).toLong() // 40% of the total time for the middle phase
@@ -109,6 +133,9 @@ class SpotOS : Service() {
         }
     }
 
+    /**
+     * Adds a single spot at a random screen position with a random bitmap.
+     */
     private fun addSpot() {
         val screenSize = Point().apply { windowManager.defaultDisplay.getSize(this) }
         val randomBitmap = spotBitmaps[Random.nextInt(spotBitmaps.size)]
@@ -120,6 +147,9 @@ class SpotOS : Service() {
         spotOverlayView.addSpotWithAnimation(randomBitmap, x, y, maxAlpha)
     }
 
+    /**
+     * Cancels any pending spot-creation callbacks and clears the overlay.
+     */
     private fun removeAllSpots() {
         handler.removeCallbacksAndMessages(null)
         spotOverlayView.clearSpots()
@@ -135,11 +165,17 @@ class SpotOS : Service() {
     override fun onBind(intent: Intent?): IBinder? = null
 }
 
+/**
+ * Custom [View] that draws and animates the collection of spots for [SpotOS].
+ */
 class SpotOverlayView(context: Context) : View(context) {
     private val spots = mutableListOf<Spot>()
     private val paint = Paint().apply { isAntiAlias = true }
 
-    // Add a new spot with fade-in and scaling animation
+    /**
+     * Adds a new spot at ([x], [y]) and animates it from fully transparent
+     * and 10% scale up to [maxAlpha] and full scale over 15 seconds.
+     */
     fun addSpotWithAnimation(bitmap: Bitmap, x: Int, y: Int, maxAlpha: Int) {
         val initialScale = 0.1f // Start with 10% of the original size
         val finalScale = 1.0f  // Scale up to 100% of the original size
@@ -172,6 +208,9 @@ class SpotOverlayView(context: Context) : View(context) {
         animationHandler.post(animationRunnable)
     }
 
+    /**
+     * Removes all spots and redraws the (now empty) overlay.
+     */
     fun clearSpots() {
         spots.clear()
         invalidate()
@@ -192,4 +231,9 @@ class SpotOverlayView(context: Context) : View(context) {
     }
 }
 
+/**
+ * A single animated spot drawn by [SpotOverlayView]: a bitmap at a fixed
+ * screen position with mutable [alpha]/[scale] driven by its fade-in
+ * animation.
+ */
 data class Spot(val bitmap: Bitmap, val x: Int, val y: Int, var alpha: Int, var scale: Float)

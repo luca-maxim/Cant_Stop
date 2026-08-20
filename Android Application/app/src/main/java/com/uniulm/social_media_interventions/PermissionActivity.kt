@@ -15,8 +15,6 @@ import android.util.Log
 import android.view.MotionEvent
 import android.widget.Button
 import android.widget.Toast
-import androidx.activity.result.ActivityResultLauncher
-import androidx.activity.result.contract.ActivityResultContracts
 import androidx.annotation.RequiresApi
 import androidx.appcompat.app.AppCompatActivity
 import androidx.core.app.ActivityCompat
@@ -26,6 +24,15 @@ import kotlinx.android.synthetic.main.all_permissions.*
 import kotlin.math.log
 
 
+/**
+ * Guides the participant through granting all permissions the study needs
+ * (battery-optimization exemption, notifications, accessibility service,
+ * "draw over other apps") before letting them continue to [StartActivity].
+ * Each permission has its own button that opens the relevant system
+ * settings screen; [onResume] re-checks all four every time the activity
+ * regains focus (e.g. after returning from Settings) and enables the
+ * "Start" button once all four are granted.
+ */
 class PermissionActivity : AppCompatActivity() {
     private lateinit var batteryOptimization: Button
     private lateinit var notification: Button
@@ -33,11 +40,7 @@ class PermissionActivity : AppCompatActivity() {
     private lateinit var appear: Button
 
     lateinit var startButton: Button
-    private lateinit var appearPermissionLauncher: ActivityResultLauncher<Intent>
 
-    // ...
-    private val runningQOrLater: Boolean = Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q
-    var perm = false
     companion object {
 
         private const val PERMISSION_BATTERY_OPTIMIZATION_REQUEST_CODE = 101
@@ -55,6 +58,12 @@ class PermissionActivity : AppCompatActivity() {
     var notification_clicked = false
     var checkboxclicked = false
 
+    /**
+     * Wires up the four permission-request buttons and the "Start" button
+     * (which routes to [StartActivity] for a fresh participant, or shows the
+     * "study running" notification and re-enters [MainActivity] if the app
+     * was previously force-stopped mid-study).
+     */
     @RequiresApi(Build.VERSION_CODES.TIRAMISU)
     @SuppressLint("SuspiciousIndentation", "MissingInflatedId", "ClickableViewAccessibility")
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -106,16 +115,6 @@ class PermissionActivity : AppCompatActivity() {
         }
 
         notification.setOnClickListener {
-            /*     if (Build.VERSION.SDK_INT >= 33 ) {
-                val requestedPermissions = arrayOf(
-
-                    Manifest.permission.POST_NOTIFICATIONS
-
-                )
-                requestPermissions(requestedPermissions, PERMISSION_NOTIFICATION_REQUEST_CODE)
-
-            }else if(Build.VERSION.SDK_INT >= Build.VERSION_CODES.R && Build.VERSION.SDK_INT < 33){*/
-
             if (isNotificationPermissionGranted_sdk30()) {
 
                 notification.isEnabled = false
@@ -133,11 +132,7 @@ class PermissionActivity : AppCompatActivity() {
 
             }
 
-        }/*else {
-                Toast.makeText(this, "Your Android Version is not supported. You can delete the App", Toast.LENGTH_SHORT).show()
-
-            } }*/
-
+        }
 
         accessibility.setOnClickListener {
 
@@ -181,24 +176,6 @@ class PermissionActivity : AppCompatActivity() {
 
 
 
-        // checkPermissions()
-
-        /*  perm = sharedPref.getBoolean("permissionsgiven", false)
-
-         if(perm){
-             Log.e("BUGFIX", "if permissionsgiven : $perm")
-             val intent = Intent(this, MainActivity::class.java)
-             startActivity(intent)
-             finish()
-         }else{
-             perm=false
-
-             //    val intent = Intent(this, PermissionActivity::class.java)
-               //  startActivity(intent)
-
-         }*/
-
-
         findViewById<Button>(R.id.btnStart).setOnClickListener {
             if(app_destroyed==false){
 
@@ -227,10 +204,6 @@ class PermissionActivity : AppCompatActivity() {
                     description = descriptionText
                 }
 
-                /*   with(NotificationManagerCompat.from(context)) {
-
-                   notify(notificationId, builder.build())
-               }*/
                 val notificationManager =
                     getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager
                 notificationManager.notify(notificationId, builder.build())
@@ -238,10 +211,10 @@ class PermissionActivity : AppCompatActivity() {
             }
         }
     }
-    private fun updateStartButtonState() {
-        val allPermissionsGranted = areAllPermissionsGranted()
-        startButton.isEnabled = allPermissionsGranted
-    }
+    /**
+     * Updates each permission button's enabled/text state based on the
+     * result of its runtime permission request.
+     */
     override fun onRequestPermissionsResult(
         requestCode: Int,
         permissions: Array<String?>,
@@ -325,6 +298,10 @@ class PermissionActivity : AppCompatActivity() {
     }
 
 
+    /**
+     * Requests [permission] via the standard runtime-permission dialog if
+     * it isn't already granted.
+     */
     fun checkPermission(permission: String, requestCode: Int) {
         if (ContextCompat.checkSelfPermission(this@PermissionActivity, permission) == PackageManager.PERMISSION_DENIED) {
 
@@ -335,49 +312,10 @@ class PermissionActivity : AppCompatActivity() {
             Toast.makeText(this, "Permission already granted", Toast.LENGTH_SHORT).show()
         }
     }
-    @RequiresApi(Build.VERSION_CODES.TIRAMISU)
-    private fun checkPermissions(): Boolean {
-        Log.e("Permissions", "in check permissions")
-        val notification = PackageManager.PERMISSION_GRANTED == ActivityCompat.checkSelfPermission(
-            this,
-            Manifest.permission.POST_NOTIFICATIONS
-        )
-        val access = PackageManager.PERMISSION_GRANTED == ActivityCompat.checkSelfPermission(
-            this,
-            Manifest.permission.BIND_ACCESSIBILITY_SERVICE
-        )
-
-        val battery = PackageManager.PERMISSION_GRANTED == ActivityCompat.checkSelfPermission(
-            this,
-            Manifest.permission.REQUEST_IGNORE_BATTERY_OPTIMIZATIONS
-        )
-        val ontop = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
-            Settings.canDrawOverlays(this)
-        } else {
-            true // For devices before Android M, overlay permission is not required
-        }
-
-
-
-        return access && notification && battery && ontop
-
-    }
-
-
-    private fun checkAppearPermissionStatus() {
-        Log.e("Permissions", "i am in checkpermssionstatus")
-        if (isAppearOnTopPermissionGranted()) {
-            appear.isEnabled = false
-            appear.text = "Appear-On-Top Permission set ✓"
-            Log.e("Permissions", "Appear granted")
-        } else {
-            appear.isEnabled = true
-            appear.text = "Request Apear-on-top Permmsion"
-            Log.e("Permissions", "Appear denied")
-        }
-    }
-
-
+    /**
+     * Returns whether the app is exempt from battery optimization (required
+     * so the accessibility service keeps running in the background).
+     */
     private fun isBatteryOptimizationGranted(): Boolean {
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
             val packageName = packageName
@@ -392,6 +330,9 @@ class PermissionActivity : AppCompatActivity() {
         return true
     }
 
+    /**
+     * Opens the system dialog to request battery-optimization exemption.
+     */
     private fun requestBatteryOptimizationPermission(): Boolean {
 
         val intent = Intent(Settings.ACTION_REQUEST_IGNORE_BATTERY_OPTIMIZATIONS)
@@ -401,6 +342,10 @@ class PermissionActivity : AppCompatActivity() {
         return true
     }
 
+    /**
+     * Opens the app's notification settings screen (used on SDK 30, where
+     * the runtime POST_NOTIFICATIONS permission dialog isn't available yet).
+     */
     private fun requestNotificationPermission_sdk30(): Boolean {
         val intent = Intent(Settings.ACTION_APP_NOTIFICATION_SETTINGS)
         intent.putExtra(Settings.EXTRA_APP_PACKAGE, packageName)
@@ -409,6 +354,10 @@ class PermissionActivity : AppCompatActivity() {
 
     }
 
+    /**
+     * Returns whether [AppCheckerService] is currently listed among the
+     * device's enabled accessibility services.
+     */
     private fun requestAccessibilityPermission() : Boolean{
 
         Log.e("Permissions", "i am in requestpermission")
@@ -420,7 +369,9 @@ class PermissionActivity : AppCompatActivity() {
 
     }
 
-    // STEP 1: Open Accessibility Settings
+    /**
+     * STEP 1: Shows an explanatory dialog, then opens Accessibility Settings.
+     */
     private fun openAccessibilitySettingsDialog() {
 
         AlertDialog.Builder(this)
@@ -437,7 +388,10 @@ class PermissionActivity : AppCompatActivity() {
 
     }
 
-    // STEP 2: Open App Settings for Restricted Settings
+    /**
+     * STEP 2: Shows an explanatory dialog, then opens the app's system
+     * settings screen so the user can allow restricted settings.
+     */
     private fun openRestrictedSettingsDialog() {
         AlertDialog.Builder(this)
             .setTitle("Enable Restricted Settings")
@@ -453,7 +407,10 @@ class PermissionActivity : AppCompatActivity() {
             .show()
     }
 
-    // STEP 3: Revisit Accessibility Settings
+    /**
+     * STEP 3: Shows a dialog guiding the user back to Accessibility Settings
+     * to finally enable the service.
+     */
     private fun guideBackToAccessibilitySettings() {
         AlertDialog.Builder(this)
             .setTitle("Enable Accessibility")
@@ -468,19 +425,28 @@ class PermissionActivity : AppCompatActivity() {
     }
 
 
-    // Check if User Interacted with InfiniteScape in Accessibility Settings (taped on 'InfiniteScape')
+    /**
+     * Placeholder for detecting whether the user tapped "InfiniteScape" in
+     * the Accessibility Settings list; always returns true.
+     */
     private fun didInteractWithAppInAccessibilitySettings(): Boolean {
         // Placeholder for checking user interaction
         return true
     }
 
-    // Check if User Interacted with InfiniteScape in Accessibility Settings (taped on 'InfiniteScape')
+    /**
+     * Placeholder for detecting whether the user interacted with the
+     * restricted-settings dialog; always returns true.
+     */
     private fun didInteractWithRestrictedSettings(): Boolean {
         // Placeholder for checking user interaction
         return true
     }
 
-    // Check if Restricted Settings are Enabled
+    /**
+     * Returns whether Android's "restricted settings" access-op is granted
+     * for this app, via the hidden `access_restricted_settings` app-op.
+     */
     private fun hasAccessRestrictedPerm(context: Context): Boolean {
         return try {
             Log.d("PermissionCheck", "Checking Restricted Settings Permission")
@@ -503,7 +469,12 @@ class PermissionActivity : AppCompatActivity() {
     }
 
 
-    // Handle Result from Accessibility and Restricted Settings
+    /**
+     * Chains the accessibility-settings walkthrough: after returning from
+     * Accessibility Settings, prompts for restricted settings; after
+     * returning from restricted settings, guides the user back to finish
+     * enabling the accessibility service.
+     */
     override fun onActivityResult(requestCode: Int, resultCode: Int, data: Intent?) {
         super.onActivityResult(requestCode, resultCode, data)
 
@@ -533,20 +504,27 @@ class PermissionActivity : AppCompatActivity() {
         }
     }
 
-    // Navigate to Settings
+    /**
+     * Opens the device's general Settings app.
+     */
     private fun openSettings():Boolean {
         val intent = Intent(Settings.ACTION_SETTINGS)
         startActivityForResult(intent, RESTRICTED_SETTINGS_REQUEST_CODE)
         return true
     }
 
-    // Navigate to Accessibility Settings
+    /**
+     * Opens the Accessibility Settings screen.
+     */
     private fun openAccessibilitySettings() {
         val intent = Intent(Settings.ACTION_ACCESSIBILITY_SETTINGS)
         startActivityForResult(intent, PERMISSION_ACCESSIBILITY_REQUEST_CODE)
     }
 
-    // Navigate to Accessibility Settings
+    /**
+     * Opens the Accessibility Settings screen and also requests the
+     * `BIND_ACCESSIBILITY_SERVICE` permission directly.
+     */
     private fun openAccessibilitySettings2(){
         val intent = Intent(Settings.ACTION_ACCESSIBILITY_SETTINGS)
         startActivity(intent)
@@ -559,16 +537,21 @@ class PermissionActivity : AppCompatActivity() {
     }
 
 
+    /**
+     * Opens the system "draw over other apps" permission screen.
+     */
     private fun openAppearontopsettings() : Boolean {
 
         val intent = Intent(Settings.ACTION_MANAGE_OVERLAY_PERMISSION)
         startActivity(intent)
-        // appearPermissionLauncher.launch(intent)
-        //  checkAppearPermissionStatus()
         return true
 
     }
 
+    /**
+     * Returns whether the "draw over other apps" (SYSTEM_ALERT_WINDOW)
+     * permission is granted.
+     */
     private fun isAppearOnTopPermissionGranted(): Boolean {
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
             return Settings.canDrawOverlays(this)
@@ -577,6 +560,9 @@ class PermissionActivity : AppCompatActivity() {
     }
 
 
+    /**
+     * Returns whether the POST_NOTIFICATIONS runtime permission is granted.
+     */
     private fun isNotificationPermissionGranted(): Boolean {
         val notification = PackageManager.PERMISSION_GRANTED == ActivityCompat.checkSelfPermission(
             this,
@@ -585,6 +571,12 @@ class PermissionActivity : AppCompatActivity() {
         return notification
 
     }
+    /**
+     * Returns whether notifications are enabled system-wide for the app
+     * (used on SDK 30, where POST_NOTIFICATIONS isn't a runtime permission
+     * yet), and updates the notification button's enabled state/label to
+     * match.
+     */
     private fun isNotificationPermissionGranted_sdk30(): Boolean {
         val notificationsEnabled = NotificationManagerCompat.from(this).areNotificationsEnabled()
         if (notificationsEnabled) {
@@ -603,40 +595,13 @@ class PermissionActivity : AppCompatActivity() {
 
         return notificationsEnabled
     }
-    private fun isAccessibilityPermissionGranted(): Boolean {
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
-            val packageName = packageName
-            val permissionStatus = packageManager.checkPermission(packageName, Manifest.permission.BIND_ACCESSIBILITY_SERVICE)
-            return permissionStatus == PackageManager.PERMISSION_GRANTED
 
-
-
-        }
-        return true
-    }
-
-    private fun isAppearOnTopPermissionGranted(context: Context): Boolean {
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
-            val granted= Settings.canDrawOverlays(context)
-            if (granted) {
-                Log.e("Permissions", "Appear on top permission is granted")
-            } else {
-                Log.e("Permissions", "Appear on top permission is not granted")
-            }
-        }
-        return true
-    }
-
-    private fun areAllPermissionsGranted(): Boolean {
-        val batteryOptimizationGranted = isBatteryOptimizationGranted()
-        val notificationGranted = isNotificationPermissionGranted()
-        val accessibilityGranted = isAccessibilityPermissionGranted()
-        val appearGranted = isAppearOnTopPermissionGranted() // Pass the context here
-
-        return batteryOptimizationGranted && notificationGranted && accessibilityGranted && appearGranted
-    }
-
-
+    /**
+     * Re-checks all four required permissions every time the activity
+     * regains focus (e.g. after returning from Settings), updating each
+     * button's state/label and enabling the "Start" button once all four
+     * are granted.
+     */
     override fun onResume() {
         super.onResume()
         if(isAppearOnTopPermissionGranted()){

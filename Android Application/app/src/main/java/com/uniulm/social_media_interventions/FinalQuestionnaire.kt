@@ -12,7 +12,6 @@ import android.os.Bundle
 import android.provider.Settings
 import android.util.Log
 import android.widget.Button
-import android.widget.EditText
 import androidx.appcompat.app.AppCompatActivity
 import com.google.firebase.FirebaseApp
 import com.google.firebase.firestore.FirebaseFirestore
@@ -20,9 +19,15 @@ import java.text.SimpleDateFormat
 import java.util.*
 
 
+/**
+ * The last screen of the study, opened from the [NotificationReceiver]
+ * "study completed" notification. On submit it records the final Firestore
+ * entry, stops [AppCheckerService] and [TimerService], marks the study as
+ * ended in shared preferences, and shows a follow-up notification that opens
+ * [DeleteApp].
+ */
 class FinalQuestionnaire : AppCompatActivity() {
 var formattedExpectedEndStudy = ""
-var finalquest_started= false
 
     @SuppressLint("MissingInflatedId")
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -31,7 +36,6 @@ var finalquest_started= false
 
         val sharedPref = getSharedPreferences("InfiniteScroll", 0)
         val editor: SharedPreferences.Editor = sharedPref.edit()
-       // sharedPref.edit().putBoolean("finalquest_started", finalquest_started).apply()
         Log.e("STUDYTIMER", "I AM IN FINALQUEST")
         val pid_last = sharedPref.getString("pID", "")
 
@@ -39,9 +43,6 @@ var finalquest_started= false
 
 
        submitButton.setOnClickListener {
-
-         // val permclass = PermissionActivity()
-          // permclass.revokePermissions()
 
            var last_checkout: Calendar = Calendar.getInstance()
            val last_checkout_2= SimpleDateFormat("MMM d HH:mm:ss", Locale.getDefault())
@@ -106,10 +107,6 @@ var finalquest_started= false
 
            }
 
-           /*   with(NotificationManagerCompat.from(context)) {
-
-                  notify(notificationId, builder.build())
-              }*/
            val notificationManager = getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager
            notificationManager.notify(notificationId, builder.build())
            notificationManager.createNotificationChannel(channel)

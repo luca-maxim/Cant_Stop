@@ -1,16 +1,13 @@
 package com.uniulm.social_media_interventions
 
 
-import android.Manifest
 import android.app.*
 import android.content.Context
 import android.content.DialogInterface
 import android.content.Intent
 import android.content.SharedPreferences
-import android.content.pm.PackageManager
 import android.os.Build
 import android.os.Bundle
-import android.os.Process
 import android.provider.Settings.Secure
 import android.util.Log
 import android.widget.Toast
@@ -26,16 +23,13 @@ import kotlinx.android.synthetic.main.activity_start.radioButton3
 import kotlinx.android.synthetic.main.activity_start.radioButton5
 import kotlinx.android.synthetic.main.activity_start.startBtn
 import kotlinx.android.synthetic.main.all_permissions.*
-import okhttp3.*
-import okhttp3.MediaType.Companion.toMediaType
-import okhttp3.RequestBody.Companion.toRequestBody
-import org.json.JSONObject
 import java.io.*
 import java.text.SimpleDateFormat
 import java.util.*
 
+// Top-level (package-visible) so other activities, e.g. FinalQuestionnaire,
+// can read/reuse them without redeclaring their own copies.
 var pID=""
-var startstudy=0L
 var timestamp = ""
 val CHANNEL_ID = "thanks"
 val name = "Study completed"
@@ -45,6 +39,11 @@ val descriptionText = "Click to open the last questionnaire"
 var notificationId = 1210
 var isQuestionnaireCompleted  = false
 
+/**
+ * Collects the participant's demographic info (Prolific ID, age, gender)
+ * right after consent and stores an [InitialAnswers] record in Firestore
+ * before handing off to [MainActivity].
+ */
 class StartActivity : AppCompatActivity(){
 
 
@@ -75,18 +74,9 @@ class StartActivity : AppCompatActivity(){
             description = descriptionText
         }
 
-        /*   with(NotificationManagerCompat.from(context)) {
-
-               notify(notificationId, builder.build())
-           }*/
         val notificationManager = getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager
         notificationManager.notify(notificationId, builder.build())
         notificationManager.createNotificationChannel(channel)
-
-
-
-
-
 
         // As some methods require a certain version, we can't support them and try to
         // exclude them from the start via a information dialog
@@ -109,17 +99,10 @@ class StartActivity : AppCompatActivity(){
                 .show()
         }
 
-        // val sharedPref = getSharedPreferences("InfiniteScroll", 0)
-
         // If the code is already stored in shared pref, the user is already logged in -> Guide them to the main
         val code = sharedPref.getString("CODE", "true")
         val comp= sharedPref.getBoolean(isQuestionnaireCompleted.toString(),false)
         // todo still try to login? If database changes or something app thinks its registererd -> error
-        /*  if (code != null && code != "true") {
-              val intent = Intent(this, MainActivity::class.java)
-              startActivity(intent)
-              finish()
-          }*/
 
         var permissionsgiven= true
 
@@ -157,56 +140,31 @@ class StartActivity : AppCompatActivity(){
 
 
                 try {
-                    // generateCSV()
-
                     sendData()
                 } catch (e: IOException) {
                     e.printStackTrace()
                 }
-
-
-
-
-
                 val intent = Intent(this, MainActivity::class.java)
                 startActivity(intent)
                 isQuestionnaireCompleted=true
                 sharedPref.edit().putBoolean("COMPLETE", isQuestionnaireCompleted)
-                /* val sharedPref = getSharedPreferences("InfiniteScroll", 0)
-                 sharedPref.edit().putString("pID", pID).apply()
-                  */
-                /*
-
-
-                               sharedPref.getLong("START STUDY TIME", startstudy)
-                               Log.e("STUDYTIMER","STARTACTIVITY BEFORE")
-                               val timerServiceIntent = Intent(this, TimerService::class.java)
-                               startService(timerServiceIntent)
-                               Log.e("STUDYTIMER","STARTACTIVITY AFTER")*/
-
-                /*  savedInstanceState?.let {
-
-                      isQuestionnaireCompleted = it.getBoolean("isQuestionnaireCompleted", false)
-                      if(isQuestionnaireCompleted){
-                          startActivity(intent)
-
-                      }
-                  }*/
-
-
-
-
-
             }
         }
 
     }
+    /**
+     * Returns the device's current language code (e.g. "en", "de").
+     */
     fun getCurrentLanguage(): String {
         // Get the default Locale of the device
         val locale = Locale.getDefault()
         // Get the language code (e.g., "en" for English, "es" for Spanish)
         return locale.language
     }
+
+    /**
+     * The demographic record stored in Firestore's `initial_answers` collection.
+     */
     data class InitialAnswers(
         val pID: String,
         val sex: String,
@@ -217,10 +175,12 @@ class StartActivity : AppCompatActivity(){
         val manufacturer:String,
         val timestamp:String
     )
-    data class FinalTimer(
-        val startstudy: Long,
-    )
 
+    /**
+     * Reads the entered Prolific ID, age, and selected gender from the
+     * form, saves them to shared preferences, and uploads an
+     * [InitialAnswers] record to Firestore.
+     */
     fun sendData(){
         val db = FirebaseFirestore.getInstance()
         val pID= prolificID_text.text.toString()
@@ -262,65 +222,12 @@ class StartActivity : AppCompatActivity(){
         val dID = Secure.getString(contentResolver, Secure.ANDROID_ID)
         val language= getCurrentLanguage()
 
-        // val startstudy= startstudy
-        //val gen = codeEdit3.text
         val initialAnswers = InitialAnswers(pID, gen, age, dID, language, androidVersion, manufacturer, timestamp)
-
-
-
-
         db.collection("initial_answers")
             .add(initialAnswers)
             .addOnSuccessListener { documentReference -> Log.d("Firestore", "DocumentSnapshot added with ID: ${documentReference.id}")}
             .addOnFailureListener { e ->Log.w("Firestore", "Error adding document", e) }
-
-        /* db.collection("final")
-             .add(finalTimer)
-             .addOnSuccessListener { documentReference -> Log.d("Firestore", "DocumentSnapshot added with ID: ${documentReference.id}")}
-             .addOnFailureListener { e ->Log.w("Firestore", "Error adding document", e) }*/
     }
-
-
-    /*  override fun onSaveInstanceState(outState: Bundle) {
-          super.onSaveInstanceState(outState)
-          // Save your activity's state data into the outState bundle here
-          outState.putBoolean("isQuestionnaireCompleted", isQuestionnaireCompleted)
-          // Add other data as needed
-      }*/
-
-    private fun isAppCheckerServiceRunning(): Boolean {
-        val manager = getSystemService(ACTIVITY_SERVICE) as ActivityManager
-        for (service in manager.getRunningServices(Int.MAX_VALUE)) {
-            if ("com.uniulm.social_media_interventions.AppCheckerService" == service.service.className) {
-                return true
-            }
-        }
-        return false
-    }
-
-    /*   override fun onResume() {
-           super.onResume()
-           val sharedPref = getSharedPreferences("InfiniteScroll", 0)
-
-           val comp= sharedPref.getBoolean("COMPLETE", false)
-           if(comp == true){
-               val intent = Intent(this, MainActivity::class.java)
-               startActivity(intent)
-               finish()
-           }
-       }
-
-       override fun onDestroy() {
-           super.onDestroy()
-           val sharedPref = getSharedPreferences("InfiniteScroll", 0)
-
-           val comp= sharedPref.getBoolean("COMPLETE", false)
-           if(comp == true){
-               val intent = Intent(this, MainActivity::class.java)
-               startActivity(intent)
-               finish()
-           }
-       }*/
 
 }
 

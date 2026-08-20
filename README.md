@@ -41,14 +41,7 @@ The app uses Firebase (Firestore, Auth, Analytics) to store questionnaire respon
 3. Download the generated `google-services.json` and place it at [`Android Application/app/google-services.json`](Android%20Application/app/google-services.json.example) (use [`google-services.json.example`](Android%20Application/app/google-services.json.example) as a template — this file is gitignored so your own keys never get committed).
 4. Enable **Firestore** and **Authentication** for the project.
 
-### 2. Study backend (optional)
-[`rhsci5_activity.kt`](Android%20Application/app/src/main/java/com/uniulm/social_media_interventions/rhsci5_activity.kt) additionally POSTs a CSV summary to a self-hosted HTTP endpoint protected with HTTP Basic Auth. This is only needed if you want to reproduce that server-side logging.
-1. Copy [`Android Application/app/study.properties.example`](Android%20Application/app/study.properties.example) to `Android Application/app/study.properties` (gitignored).
-2. Fill in `STUDY_SERVER_URL`, `STUDY_SERVER_USERNAME`, and `STUDY_SERVER_PASSWORD` for your own server.
-
-If you skip this step, the app builds and runs fine — the build falls back to placeholder values and only that specific upload will fail.
-
-### 3. Build & run
+### 2. Build & run
 ```bash
 cd "Android Application"
 ./gradlew assembleDebug
@@ -58,7 +51,7 @@ or open the `Android Application` folder in Android Studio and run the `app` con
 > **Known issue:** the build currently fails to resolve `com.rvalerio:fgchecker:1.1.0` (used by [`AppCheckerService.kt`](Android%20Application/app/src/main/java/com/uniulm/social_media_interventions/AppCheckerService.kt) to detect the foreground app — the core signal that triggers interventions). Its two host repositories (`dl.bintray.com`, shut down in 2021, and `maven.owncloud.org`) are both dead, and the library's original GitHub repo has been deleted. To build the app you currently need to either vendor a replacement for `fgchecker`'s `AppChecker.getForegroundApp()` (a standard `UsageStatsManager` query — the app already requests `PACKAGE_USAGE_STATS`) or locate a working mirror of the original artifact.
 
 ### Permissions
-Because the app needs to detect and interrupt scrolling in third-party apps, it requests several sensitive permissions at runtime, including Usage Access, "Draw over other apps", Accessibility Service, and Device Admin. These are explained to participants in-app before being requested (see `strings.xml` and the permission activities).
+Because the app needs to detect and interrupt scrolling in third-party apps, it requests several sensitive permissions at runtime, including Usage Access, "Draw over other apps", Accessibility Service, Notifications, and battery-optimization exemption. These are explained to participants in-app before being requested (see `strings.xml` and [`PermissionActivity.kt`](Android%20Application/app/src/main/java/com/uniulm/social_media_interventions/PermissionActivity.kt)).
 
 ## Reproducing the Analysis
 The statistical analysis (mixed models, Bayesian modeling with `brms`) is in [`Study Data/Analysis.R`](Study%20Data/Analysis.R) and reads [`main_data.csv`](Study%20Data/data/main_data.csv) and [`pilot_data.csv`](Study%20Data/data/pilot_data.csv). Open it in RStudio and install the required packages:

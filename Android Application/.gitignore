@@ -17,6 +17,3 @@ local.properties
 # Firebase config (contains project-specific keys) — copy google-services.json.example
 # into place and fill in your own Firebase project's values.
 app/google-services.json
-
-# Study backend credentials
-study.properties

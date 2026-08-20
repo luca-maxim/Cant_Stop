@@ -20,15 +20,25 @@ import kotlinx.android.synthetic.main.activity_after_rshci.*
 import kotlinx.android.synthetic.main.activity_after_rshci1.*
 import kotlinx.android.synthetic.main.activity_after_rshci1.view.*
 import kotlinx.android.synthetic.main.activity_sess_feeling_after.*
-import okhttp3.*
-import okhttp3.MediaType.Companion.toMediaType
-import okhttp3.RequestBody.Companion.toRequestBody
-import org.json.JSONObject
-import java.io.IOException
 import java.util.*
 import kotlin.random.Random
 import android.widget.TextView
 
+/**
+ * The post-intervention questionnaire shown right after a scrolling
+ * intervention fires. Walks the participant through a chained sequence of
+ * single-choice questions (`checkGroup1`...`checkGroupAtHome`, each firing
+ * the next on completion) covering the RSHCI items, sense of agency,
+ * satisfaction, goal alignment, usefulness, current context (SAM, activity,
+ * stress, sleepiness, company, side activity, at-home), and a randomly
+ * placed attention check, then uploads all answers as one
+ * [InterventionAnswers] record to Firestore and hands off to [ThankActivity].
+ *
+ * Despite the "1" in its name, this single activity absorbs the
+ * functionality that separate `rhsci2`-`rhsci5` activities would have had —
+ * answers for all five RSHCI items are saved here via the `spot` parameter
+ * of [saveres].
+ */
 class rhsci1_activity : AppCompatActivity() {
     var interventionType = ""
     var timestamp = ""
@@ -53,10 +63,15 @@ class rhsci1_activity : AppCompatActivity() {
     var checkSatisfaction = false
     var checkGoalAlignment = false
     var checkUsefulInSituation = false
-    var answer6 = "false"
     var answer0 = "false"
     var pID = ""
 
+    /**
+     * Inflates the questionnaire, detaches the two attention-check cards
+     * from their default layout position, and re-inserts at most one of
+     * them at a random spot via [placeAckRandomly] before wiring the
+     * "start" button to begin the [checkGroup1] question chain.
+     */
     @RequiresApi(Build.VERSION_CODES.N)
     override fun onCreate(savedInstanceState: Bundle?) {
 
@@ -89,7 +104,11 @@ class rhsci1_activity : AppCompatActivity() {
 
     }
 
-    // Place the attention checks randomly
+    /**
+     * Randomly decides whether to show no attention check, [cardView1], or
+     * [cardView2], and if shown, inserts it at a random position within the
+     * allowed index range of the question list.
+     */
     private fun placeAckRandomly() {
 
         val allowedPositions = listOf(4, 5, 6, 7, 8, 9, 10, 11, 12, 16, 17)
@@ -124,6 +143,10 @@ class rhsci1_activity : AppCompatActivity() {
         }
     }
 
+    /**
+     * Closes the activity as soon as it loses focus, so the questionnaire
+     * can't be left half-answered in the background.
+     */
     override fun onPause() {
         super.onPause()
         finish()
@@ -133,6 +156,9 @@ class rhsci1_activity : AppCompatActivity() {
         super.onStart()
     }
 
+    /**
+     * Cancels the questionnaire and returns to [MainActivity] on back-press.
+     */
     override fun onBackPressed() {
         val intent = Intent(this, MainActivity::class.java)
         startActivity(intent)
@@ -141,6 +167,9 @@ class rhsci1_activity : AppCompatActivity() {
     }
 
 
+    /**
+     * Navigates on to [ThankActivity] once the questionnaire is complete.
+     */
     fun gon() {
         val intent = Intent(this, ThankActivity::class.java)
         startActivity(intent)
@@ -148,6 +177,9 @@ class rhsci1_activity : AppCompatActivity() {
         finish()
     }
 
+    /**
+     * Shows a toast telling the participant they skipped a question.
+     */
     fun sendQMWarning() {
         Toast.makeText(
             this,
@@ -156,9 +188,14 @@ class rhsci1_activity : AppCompatActivity() {
     }
 
     /*----- Attention checks -----*/
+    // checkGroup0/checkGroup6 validate the two attention-check cards
+    // ("I swim across the atlantic ocean..." / "I breathe in more than once
+    // a day..."); each is only evaluated if its card was actually shown by
+    // [placeAckRandomly], and both funnel into [sendData] once satisfied.
 
-    // cardView1
-    // "Attention Check: I swim across the atlantic ocean every day to get to work"
+    /**
+     * Validates the answer to attention-check card 1, if it was shown.
+     */
     fun checkGroup0() {
         answer0 = "false"
         check0 = false
@@ -200,8 +237,9 @@ class rhsci1_activity : AppCompatActivity() {
         }
     }
 
-    // cardView2
-    // "Attention Check: I breathe in more than once a day"
+    /**
+     * Validates the answer to attention-check card 2, if it was shown.
+     */
     fun checkGroup6() {
         answer0 = "false"
         check6 = false
@@ -246,7 +284,11 @@ class rhsci1_activity : AppCompatActivity() {
 
     /*----- "Refer to the itervention you received" -----*/
 
-    // "1. I want to be in control not my phone"
+    /**
+     * Question: "1. I want to be in control not my phone"
+     * Reads the checked radio button, saves the answer via [saveres], and
+     * chains to the next question in the sequence.
+     */
     fun checkGroup1() {
         var answer1 = 42
         check1 = false
@@ -279,7 +321,11 @@ class rhsci1_activity : AppCompatActivity() {
         }
     }
 
-    // "2. I like to act independently from my phone"
+    /**
+     * Question: "2. I like to act independently from my phone"
+     * Reads the checked radio button, saves the answer via [saveres], and
+     * chains to the next question in the sequence.
+     */
     fun checkGroup2() {
         var answer2 = 42
         check2 = false
@@ -309,11 +355,14 @@ class rhsci1_activity : AppCompatActivity() {
 
         if (check2) {
             checkGroup3()
-            //checkGroupKSS()
         }
     }
 
-    // "3. i don´t want to tell my phone what to do"
+    /**
+     * Question: "3. i don´t want to tell my phone what to do"
+     * Reads the checked radio button, saves the answer via [saveres], and
+     * chains to the next question in the sequence.
+     */
     fun checkGroup3() {
         var answer3 = 42
         check3 = false
@@ -345,7 +394,11 @@ class rhsci1_activity : AppCompatActivity() {
         }
     }
 
-    // "4. I don´t let my phone impose it´s will on me"
+    /**
+     * Question: "4. I don´t let my phone impose it´s will on me"
+     * Reads the checked radio button, saves the answer via [saveres], and
+     * chains to the next question in the sequence.
+     */
     fun checkGroup4() {
         var answer4 = 42
         check4 = false
@@ -377,7 +430,11 @@ class rhsci1_activity : AppCompatActivity() {
         }
     }
 
-    // "5. I alone determine what I do, not my phone"
+    /**
+     * Question: "5. I alone determine what I do, not my phone"
+     * Reads the checked radio button, saves the answer via [saveres], and
+     * chains to the next question in the sequence.
+     */
     fun checkGroup5() {
         var answer5 = 42
         check5 = false
@@ -405,23 +462,16 @@ class rhsci1_activity : AppCompatActivity() {
         else {
             sendQMWarning()
         }
-        /*
-                if (check5){
-                    if(cardView1.isVisible==true) {
-                        Log.e("QUESTIONNAIRE", "cardView1visibile-  checkgroup 5")
-                        checkGroup0()
-                    }else if(cardView2.isVisible==true){
-                        Log.e("QUESTIONNAIRE", "cardView1notvisibile-  checkgroup 5")
-                        checkGroup6()
-                    }
-                }*/
         if (check5) {
             checkGroupSenseOfAgency()
-            // checkGroup9()
         }
     }
 
-    // "6. For this intervention, how much did you feel out of or in control"
+    /**
+     * Question: "6. For this intervention, how much did you feel out of or in control"
+     * Reads the checked radio button, saves the answer via [saveres], and
+     * chains to the next question in the sequence.
+     */
     fun checkGroupSenseOfAgency() {
         var answerSenseOfAgency = 42
         checkSenseOfAgency = false
@@ -462,7 +512,11 @@ class rhsci1_activity : AppCompatActivity() {
         }
     }
 
-    // "7. For this intervention, how much did you feel dissatisfied or satisfied"
+    /**
+     * Question: "7. For this intervention, how much did you feel dissatisfied or satisfied"
+     * Reads the checked radio button, saves the answer via [saveres], and
+     * chains to the next question in the sequence.
+     */
     fun checkGroupSatisfaction() {
         var answerSatisfaction = 42
         checkSatisfaction = false
@@ -503,7 +557,11 @@ class rhsci1_activity : AppCompatActivity() {
         }
     }
 
-    // "8. For this intervention, how much did it conflict with or support your personal goals"
+    /**
+     * Question: "8. For this intervention, how much did it conflict with or support your personal goals"
+     * Reads the checked radio button, saves the answer via [saveres], and
+     * chains to the next question in the sequence.
+     */
     fun checkGroupGoalAlignment() {
         var answerGoalAlignment = 42
         checkGoalAlignment = false
@@ -544,7 +602,11 @@ class rhsci1_activity : AppCompatActivity() {
         }
     }
 
-    // "9. I ﬁnd the intervention to be useful in my current situation"
+    /**
+     * Question: "9. I ﬁnd the intervention to be useful in my current situation"
+     * Reads the checked radio button, saves the answer via [saveres], and
+     * chains to the next question in the sequence.
+     */
     fun checkGroupUsefulInSituation() {
         var answerUsefulInSituation = 42
         checkUsefulInSituation = false
@@ -588,7 +650,11 @@ class rhsci1_activity : AppCompatActivity() {
 
     /*----- "What is your current context" -----*/
 
-    // "2.1 How do you feel"
+    /**
+     * Question: "2.1 How do you feel"
+     * Reads the checked radio button, saves the answer via [saveres], and
+     * chains to the next question in the sequence.
+     */
     fun checkGroupSam() {
         var answerSam = 404
         checkSam = false
@@ -617,11 +683,14 @@ class rhsci1_activity : AppCompatActivity() {
         }
         if (checkSam) {
             checkGroup9()
-            // checkGroup3()
         }
     }
 
-    // "2.2 What is your current activity"
+    /**
+     * Question: "2.2 What is your current activity"
+     * Reads the checked radio button, saves the answer via [saveres], and
+     * chains to the next question in the sequence.
+     */
     fun checkGroup9() {
         var answer9 = ""
         var check9 = false
@@ -662,7 +731,11 @@ class rhsci1_activity : AppCompatActivity() {
         }
     }
 
-    // "2.3 What number best describes your level of stress right now?"
+    /**
+     * Question: "2.3 What number best describes your level of stress right now?"
+     * Reads the checked radio button, saves the answer via [saveres], and
+     * chains to the next question in the sequence.
+     */
     fun checkGroupStress() {
         var answerStress = 42
         checkStress = false
@@ -721,7 +794,11 @@ class rhsci1_activity : AppCompatActivity() {
 
 
 
-    // "2.4 What is your level of sleepiness"
+    /**
+     * Question: "2.4 What is your level of sleepiness"
+     * Reads the checked radio button, saves the answer via [saveres], and
+     * chains to the next question in the sequence.
+     */
     fun checkGroupKSS() {
         var answerKSS = 100
         checkKSS = false
@@ -769,7 +846,11 @@ class rhsci1_activity : AppCompatActivity() {
         }
     }
 
-    // "2.5 Which one of these best describes people around you"
+    /**
+     * Question: "2.5 Which one of these best describes people around you"
+     * Reads the checked radio button, saves the answer via [saveres], and
+     * chains to the next question in the sequence.
+     */
     fun checkGroup11() {
         var answer11 = ""
         check11 = false
@@ -790,7 +871,11 @@ class rhsci1_activity : AppCompatActivity() {
         }
     }
 
-    // "2.6 Did you do anything else besides being on the phone"
+    /**
+     * Question: "2.6 Did you do anything else besides being on the phone"
+     * Reads the checked radio button, saves the answer via [saveres], and
+     * chains to the next question in the sequence.
+     */
     fun checkGroup10() {
         var answer10 = ""
         var check10 = false
@@ -812,7 +897,11 @@ class rhsci1_activity : AppCompatActivity() {
         }
     }
 
-    // "2.7 Are you currently at home"
+    /**
+     * Question: "2.7 Are you currently at home"
+     * Reads the checked radio button, saves the answer via [saveres], and
+     * chains to the next question in the sequence.
+     */
     fun checkGroupAtHome() {
         var answerAtHome = ""
         checkAtHome = false
@@ -845,6 +934,10 @@ class rhsci1_activity : AppCompatActivity() {
         }
     }
 
+    /**
+     * Saves an integer-valued answer to shared preferences under the key
+     * identified by [spot] (e.g. `spot == 1` writes `"RSHCI1"`).
+     */
     fun saveres(answer1: Int, spot: Int) {
         val sharedPref = getSharedPreferences("InfiniteScroll", 0)
         val editor: SharedPreferences.Editor = sharedPref.edit()
@@ -890,6 +983,10 @@ class rhsci1_activity : AppCompatActivity() {
 
     }
 
+    /**
+     * String-valued overload of [saveres] for the situation/side-activity/
+     * current-activity/at-home answers.
+     */
     fun saveres(answer1: String, spot: Int) {
         val sharedPref = getSharedPreferences("InfiniteScroll", 0)
         val editor: SharedPreferences.Editor = sharedPref.edit()
@@ -911,6 +1008,10 @@ class rhsci1_activity : AppCompatActivity() {
 
     }
 
+    /**
+     * Saves the attention-check answer (`spot` 0 or 6) under the shared
+     * `"ack"` key.
+     */
     fun saveres_ack(answer1: String, spot: Int) {
         val sharedPref = getSharedPreferences("InfiniteScroll", 0)
         val editor: SharedPreferences.Editor = sharedPref.edit()
@@ -923,6 +1024,10 @@ class rhsci1_activity : AppCompatActivity() {
 
     }
 
+    /**
+     * The full questionnaire response stored in Firestore's
+     * `intervention_answers` collection.
+     */
     data class InterventionAnswers(
         val appName: String,
         val situation: String,
@@ -949,19 +1054,16 @@ class rhsci1_activity : AppCompatActivity() {
         val interventionType: String,
     )
 
+    /**
+     * Reads all questionnaire answers back out of shared preferences,
+     * assembles an [InterventionAnswers] record, uploads it to Firestore,
+     * and navigates on via [gon].
+     */
     fun sendData() {
         Log.e("QUESTIONNAIRE", " AT SENDATA : $check11 , $check6, $check0")
 
-        //   val delayTimeInSeconds = intent.getLongExtra("delayTimeInSeconds", 0)
-        // val delayTimeFormatted = intent.getLongExtra("delayTimeFormatted", 0)
         val sharedPref = getSharedPreferences("InfiniteScroll", 0)
-        //    var pid = sharedPref.getString("pID", "EMPTY")
         Log.e("PROLIFIC ID ARRIVAL", pID.toString())
-        var app_name = sharedPref.getString("App_Name", "EMPTY")
-        var intv_name = sharedPref.getString("Intv_Name", "EMPTY")
-        var t1 = sharedPref.getString("t1", "EMPTY")
-        var t2 = sharedPref.getString("t2", "EMPTY")
-        //var delta = sharedPref.getString("Delta", "EMPTY")
         var rshci1 = sharedPref.getInt("RSHCI1", 404)
         var rshci2 = sharedPref.getInt("RSHCI2", 404)
         var rshci3 = sharedPref.getInt("RSHCI3", 404)
@@ -978,10 +1080,8 @@ class rhsci1_activity : AppCompatActivity() {
         var sam = sharedPref.getInt("sam", 404)
 
         var situation = sharedPref.getString("situation", "Default")
-//        var location = sharedPref.getString("location", "Default")
         var sideActivity = sharedPref.getString("sideActivity", "Default") ?: "Default"
         var currAct = sharedPref.getString("currentActivity", "Default")
-        //   var delayTimeInSec = sharedPref.getLong("delayTimeinSeconds", delayTimeInSeconds)
 
         val dID = Settings.Secure.getString(contentResolver, Settings.Secure.ANDROID_ID)
         timestamp = sharedPref.getString("timestamp", "").toString()
@@ -1032,36 +1132,6 @@ class rhsci1_activity : AppCompatActivity() {
             }
             .addOnFailureListener { e -> Log.w("Firestore", "Error adding document", e) }
         gon()
-    }
-
-
-    fun postJsonToServer(
-        url: String,
-        jsonObject: JSONObject,
-        credentials: String,
-        callback: (response: String?) -> Unit,
-    ) {
-        val client = OkHttpClient()
-        //val intent = Intent(this, WelcomeActivity::class.java)
-        var intent = Intent(this, AppCheckerService::class.java)
-        val requestBody = jsonObject.toString().toRequestBody("application/json".toMediaType())
-        val request = Request.Builder()
-            .addHeader("Authorization", credentials)
-            .addHeader("Content-Type", "text/csv")
-            .url(url)
-            .post(requestBody)
-            .build()
-
-        client.newCall(request).enqueue(object : Callback {
-            override fun onResponse(call: Call, response: Response) {
-                val responseBody = response.body?.string()
-                callback(responseBody)
-            }
-
-            override fun onFailure(call: Call, e: IOException) {
-                callback(null)
-            }
-        })
     }
 
 

@@ -18,8 +18,6 @@
     <uses-permission android:name="android.permission.VIBRATE" />
 
     <uses-permission android:name="android.permission.SYSTEM_ALERT_WINDOW" />
-    <uses-permission android:name="android.permission.BIND_DEVICE_ADMIN"
-        tools:ignore="ProtectedPermissions" />
 
     <uses-permission android:name="android.permission.READ_EXTERNAL_STORAGE" />
     <uses-permission android:name="android.permission.WRITE_EXTERNAL_STORAGE" />
@@ -45,8 +43,6 @@
         android:usesCleartextTraffic="true"
         >
 
-        <activity android:name="com.uniulm.social_media_interventions.EndNoteActivity"    android:exported="true" />
-
         <activity
             android:name="com.uniulm.social_media_interventions.WelcomeActivity"
             android:label="InfiniteScape"
@@ -65,59 +61,6 @@
             android:exported="true"   tools:node="merge"
             />
 
-
-        <activity
-            android:name="com.uniulm.social_media_interventions.ScrolledActivity"
-            android:label="SocialMediaInterventions"
-            android:exported="true"   tools:node="merge"
-            />
-        <activity
-            android:name="com.uniulm.social_media_interventions.AgeActivity"
-            android:label="SocialMediaInterventions"
-            android:windowSoftInputMode="adjustResize"
-            android:exported="true"   tools:node="merge"
-            />
-        <activity
-            android:name="com.uniulm.social_media_interventions.GenderActivity"
-            android:label="SocialMediaInterventions"
-            android:exported="true"   tools:node="merge"
-            />
-        <activity
-            android:name="com.uniulm.social_media_interventions.SocialMediaActivity"
-            android:label="SocialMediaInterventions"
-            android:exported="true"   tools:node="merge"
-            />
-        <activity
-            android:name="com.uniulm.social_media_interventions.UserGroupActivity"
-            android:label="SocialMediaInterventions"
-            android:exported="true"  tools:node="merge"
-            />
-        <activity
-            android:name="com.uniulm.social_media_interventions.TimeSpendActivity"
-            android:label="SocialMediaInterventions"    android:exported="true"   tools:node="merge" />
-        <activity
-            android:name="com.uniulm.social_media_interventions.UsageReasonsActivity"
-            android:label="SocialMediaInterventions"    android:exported="true"    tools:node="merge"/>
-        <activity
-            android:name="com.uniulm.social_media_interventions.StuckSocialMediaActivity"
-            android:label="SocialMediaInterventions"    android:exported="true"   tools:node="merge" />
-        <activity
-            android:name="com.uniulm.social_media_interventions.ReachingEndActivity"
-            android:label="SocialMediaInterventions"    android:exported="true"   tools:node="merge" />
-        <activity
-            android:name="com.uniulm.social_media_interventions.AttentionCheckQuest"
-            android:label="SocialMediaInterventions"    android:exported="true"   tools:node="merge" />
-        <activity
-            android:name="com.uniulm.social_media_interventions.StuckOnPostsActivity"
-            android:label="SocialMediaInterventions"    android:exported="true"   tools:node="merge" />
-<!--
-        <activity
-            android:name="com.uniulm.social_media_interventions.UsageAccessPermissionActivity"
-            android:label="SocialMediaInterventions" />
-        <activity
-            android:name="com.uniulm.social_media_interventions.OverlayPermissionActivity"
-            android:label="SocialMediaInterventions" />
-        -->
         <activity
             android:name="com.uniulm.social_media_interventions.PermissionActivity"
             android:label="InfiniteScape"
@@ -133,9 +76,6 @@
             android:exported="true"   tools:node="merge"
             />
         <activity
-            android:name="com.uniulm.social_media_interventions.FeelingAfterLockActivity"
-            android:label="InfiniteScape"    android:exported="true"    tools:node="merge"/>
-        <activity
             android:name="com.uniulm.social_media_interventions.rhsci_activity"
             android:label="InfiniteScape"
             android:exported="true"   tools:node="merge"
@@ -145,20 +85,6 @@
             android:label="InfiniteScape"
             android:exported="true"   tools:node="merge"
             />
-        <activity
-            android:name="com.uniulm.social_media_interventions.rhsci2_activity"
-            android:label="InfiniteScape"
-            android:exported="true"   tools:node="merge"
-            />
-        <activity
-            android:name="com.uniulm.social_media_interventions.rhsci3_activity"
-            android:label="InfiniteScape"    android:exported="true"   tools:node="merge"/>
-        <activity
-            android:name="com.uniulm.social_media_interventions.rhsci4_activity"
-            android:label="InfiniteScape"    android:exported="true"   tools:node="merge"/>
-        <activity
-            android:name="com.uniulm.social_media_interventions.rhsci5_activity"
-            android:label="InfiniteScape"    android:exported="true"   tools:node="merge" />
         <activity
             android:name="com.uniulm.social_media_interventions.ToS_activity"
             android:label="InfiniteScape"
@@ -174,14 +100,6 @@
             android:exported="true"
             tools:node="merge"
             />
-
-        <!--
-        <activity android:name=".BatteryPermissionActivity"
-            android:label="SocialMediaInterventions" />
-        <activity android:name=".AdditionalPermissionActivity"
-            android:label="SocialMediaInterventions" />
--->
-
 
         <!-- MANU -->
         <service
@@ -215,22 +133,6 @@
                 <action android:name="YouWillNeverKillMe" >
                 </action>
             </intent-filter>
-        </receiver>
-
-        <receiver
-            android:name="com.uniulm.social_media_interventions.MyAdminReceiver"
-            android:permission="android.permission.BIND_DEVICE_ADMIN"
-            android:exported="true"   tools:node="merge">
-            <meta-data
-                android:name="android.app.device.admin"
-                android:resource="@xml/admin"/>
-            <intent-filter>
-
-                <!-- This action is required -->
-                <action android:name="android.app.action.DEVICE_ADMIN_ENABLED" />
-            </intent-filter>
-
-
         </receiver>
 
         <receiver

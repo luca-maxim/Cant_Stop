@@ -43,39 +43,6 @@
             android:textColorLink="#EE7120"
             android:text="https://youtu.be/q4AyDuF90no" />
 
-<!--
-        <TextView
-            android:id="@+id/access"
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:text="Accessibility Permission"
-            android:textSize="20sp"
-            android:textColor="#000000"
-            android:paddingStart="16dp"
-            android:paddingTop="16dp"
-            android:paddingEnd="16dp"
-            android:paddingBottom="8dp"
-            tools:ignore="MissingConstraints"
-            tools:layout_editor_absoluteX="14dp"
-            tools:layout_editor_absoluteY="103dp" />
--->
-
-        <!--
-                <TextView
-                    android:id="@+id/notification"
-                    android:layout_width="match_parent"
-                    android:layout_height="wrap_content"
-                    android:text="Notification Permission"
-                    android:textSize="20sp"
-                    android:textColor="#000000"
-                    android:paddingStart="16dp"
-                    android:paddingTop="16dp"
-                    android:paddingEnd="16dp"
-                    android:paddingBottom="8dp"
-                    tools:ignore="MissingConstraints"
-                    tools:layout_editor_absoluteX="14dp"
-                    tools:layout_editor_absoluteY="103dp" />
-        -->
         <Button
             android:id="@+id/accessbutton"
             android:text="Request Accessibility Permission"
@@ -98,22 +65,6 @@
             tools:layout_editor_absoluteX="76dp"
             tools:layout_editor_absoluteY="170dp" />
 
-<!--
-        <TextView
-            android:id="@+id/ontop"
-            android:layout_width="324dp"
-            android:layout_height="wrap_content"
-            android:text="Appear On Top Permission"
-            android:textSize="20sp"
-            android:textColor="#000000"
-            android:paddingStart="16dp"
-            android:paddingTop="16dp"
-            android:paddingEnd="16dp"
-            android:paddingBottom="8dp"
-            tools:ignore="MissingConstraints"
-            tools:layout_editor_absoluteX="14dp"
-            tools:layout_editor_absoluteY="103dp" />
--->
         <Button
             android:id="@+id/ontopbutton"
             android:text="Request Appear On Top Permission"
@@ -124,22 +75,6 @@
             android:layout_marginBottom="15dp"
             tools:layout_editor_absoluteX="76dp"
             tools:layout_editor_absoluteY="170dp" />
-<!--
-        <TextView
-            android:id="@+id/batteryperm"
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:text="Battery Permission"
-            android:textSize="20sp"
-            android:textColor="#000000"
-            android:paddingStart="16dp"
-            android:paddingTop="16dp"
-            android:paddingEnd="16dp"
-            android:paddingBottom="8dp"
-            tools:ignore="MissingConstraints"
-            tools:layout_editor_absoluteX="14dp"
-            tools:layout_editor_absoluteY="103dp" />
--->
         <Button
             android:id="@+id/batterybutton"
             android:text="Request Battery Permission"
@@ -151,58 +86,6 @@
             android:layout_marginBottom="15dp"
             tools:layout_editor_absoluteY="170dp" />
 
-        <!--
-            <LinearLayout
-
-                android:orientation="vertical"
-                android:layout_height="204dp"
-                android:layout_width="193dp"
-                android:layout_marginBottom="64dp"
-                app:layout_constraintBottom_toBottomOf="parent"
-                app:layout_constraintEnd_toEndOf="parent"
-                app:layout_constraintStart_toStartOf="parent">
-
-                <CheckBox
-                    android:id="@+id/checkBoxBatteryOptimization"
-                    android:layout_width="wrap_content"
-                    android:layout_height="wrap_content"
-                    android:text="Battery Optimization" />
-
-                <CheckBox
-                    android:id="@+id/checkBoxNotification"
-                    android:layout_width="wrap_content"
-                    android:layout_height="wrap_content"
-
-                    android:text="Notification" />
-
-                <CheckBox
-                    android:id="@+id/checkBoxAccessibility"
-                    android:layout_width="wrap_content"
-                    android:layout_height="wrap_content"
-                    android:text="Accessibility" />
-
-                <CheckBox
-                    android:id="@+id/checkBoxAppear"
-                    android:layout_width="wrap_content"
-                    android:layout_height="wrap_content"
-                    android:text="Appear On Top" />
-
-
-            </LinearLayout>
-
-            <Button
-                android:id="@+id/btnStart"
-
-                android:text="Start"
-                android:layout_height="50dp"
-                android:layout_width="100dp"
-                android:layout_marginBottom="4dp"
-                app:layout_constraintBottom_toBottomOf="parent"
-                app:layout_constraintEnd_toEndOf="parent"
-                app:layout_constraintHorizontal_bias="0.498"
-                app:layout_constraintStart_toStartOf="parent" />
-
-        -->
     </LinearLayout>
 
     <Button
