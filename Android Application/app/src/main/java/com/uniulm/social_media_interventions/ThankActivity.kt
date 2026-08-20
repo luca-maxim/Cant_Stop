@@ -83,18 +83,11 @@ class ThankActivity : AppCompatActivity() {
         } else {
 
 
-            /*val builder: androidx.appcompat.app.AlertDialog.Builder =
-                androidx.appcompat.app.AlertDialog.Builder(this)
-            builder.setMessage("Please allow the usage stats permission and restart this app, as it will not work without it and you will not be able to finish this study.")
-                .setPositiveButton("Continue", dialogClickListener).setCancelable(false)
-                .show()*/
         }
 
 
         val sharedPref = getSharedPreferences("InfiniteScroll", 0)
         val isRegistered = sharedPref.getBoolean("Registered", false)
-        val code = sharedPref.getString("TEMP_CODE", "true")
-        val helper = Helper()
 
         // Set study end timer should it be missing
         if (sharedPref.getString("STUDY_END_TIMER", "DEFAULT") == "DEFAULT") {
@@ -112,66 +105,7 @@ class ThankActivity : AppCompatActivity() {
             date.time = (date.time + 7L * 24 * 60 * 60 * 1000)
             editor.putString("STUDY_END_TIMER", date.toString())
             editor.apply()
-
-            //val questionnaireAnswers = sharedPref.getString("questionnaireAnswers", "")
-            //val questionnaire = JSONObject(questionnaireAnswers)
-            //questionnaire.put("deviceModel", Build.MANUFACTURER + " - " + Build.MODEL)
-            //Log.e("Questionaire + Device", questionnaire.toString())
-            val history = JSONObject()
-                .put("history", showUsageStats("test").toString())
-                .put("dailyHistory", showUsageStats("daily").toString())
-
-            val activity = this;
-            val context = this;
-
-            /*helper.createNewUser(
-                activity,
-                context,
-                questionnaire,
-                history,
-                code.toString(),
-                Settings.Secure.getString(
-                    context.contentResolver,
-                    Settings.Secure.ANDROID_ID
-                )
-            )*/
         }
-
-        // Opens the default email app to send a support email
-        /*this.support.setOnClickListener {
-            val intent = Intent(Intent.ACTION_SENDTO)
-            intent.putExtra(Intent.EXTRA_SUBJECT, code.toString())
-            intent.putExtra(Intent.EXTRA_TEXT, "How can we help?")
-            intent.data = Uri.parse("mailto:beyinf.feedback@gmail.com")
-            intent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
-            startActivity(intent)
-        }*/
-
-        // Quits the study for the user, sets that flag on the server and stops the app
-        /*this.quitButton.setOnClickListener {
-            val dialogClickListener =
-                DialogInterface.OnClickListener { dialog, which ->
-                    when (which) {
-                        DialogInterface.BUTTON_POSITIVE -> {
-                            val editor: SharedPreferences.Editor = sharedPref.edit()
-                            editor.putString("QUIT", "true")
-                            editor.apply()
-                            sendQuitStudy()
-                            val intent = Intent(this, AppCheckerService::class.java)
-                            stopService(intent)
-                            finish()
-                        }
-                        DialogInterface.BUTTON_NEGATIVE -> {
-                        }
-                    }
-                }
-
-            val builder: AlertDialog.Builder = AlertDialog.Builder(this)
-            builder.setTitle("Warning")
-                .setMessage("Are you sure? You won't be able to complete the study.")
-                .setPositiveButton("Yes", dialogClickListener)
-                .setNegativeButton("No", dialogClickListener).show()
-        }*/
     }
 
     override fun onStart() {
@@ -200,14 +134,6 @@ class ThankActivity : AppCompatActivity() {
                     startService(intent)
                 }
             }
-        } else {
-
-
-            /*val builder: androidx.appcompat.app.AlertDialog.Builder =
-                androidx.appcompat.app.AlertDialog.Builder(this)
-            builder.setMessage("Please allow the usage stats permission and restart this app, as it will not work without it and you will not be able to finish this study.")
-                .setPositiveButton("Continue", dialogClickListener).setCancelable(false)
-                .show()*/
         }
 
 
@@ -413,21 +339,4 @@ class ThankActivity : AppCompatActivity() {
             .show()
     }
 
-    @RequiresApi(Build.VERSION_CODES.N)
-    fun sendQuitStudy() {
-        val helper = Helper()
-        /*helper.sendRequest(
-            this,
-            object : VolleyCallBack {
-                override fun onSuccess(response: JSONObject?) {
-//                    Log.e("REFRESH RESPONSE", response.toString())
-                }
-
-                override fun onFailure(response: JSONObject?) {
-//                    Log.e("ERROR_RESPONSE", response.toString())
-                }
-            },
-            "/quit", "POST", null
-        )*/
-    }
 }

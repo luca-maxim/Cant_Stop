@@ -722,28 +722,6 @@ public class AppCheckerService : AccessibilityService() {
         val date = Date(notificationTimer)
         if (date < now) {
             Log.e("STUDY_OVER", "OVER")
-            // todo finish study - end service - some popup - clickworker vs free
-            val helper = Helper()
-            val completionHistory = JSONObject()
-                .put("completionHistory", getUsageStats())
-            /*helper.sendRequest(
-                this,
-                object : VolleyCallBack {
-                    override fun onSuccess(response: JSONObject?) {
-
-                    }
-
-                    override fun onFailure(errorResponse: JSONObject?) {
-                    }
-                },
-                "/user/finish",
-                "POST",
-                completionHistory.toString()
-            )*/
-            /*      sendEndNotification(
-                      "The study for infinite scroll is over",
-                      "Please consider giving us feedback by clicking this notification."
-                  )*/
             val editor: SharedPreferences.Editor = sharedPref.edit()
             editor.putString("QUIT", "true")
             editor.apply()

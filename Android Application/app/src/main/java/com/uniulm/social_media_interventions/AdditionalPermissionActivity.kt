@@ -27,7 +27,6 @@ class AdditionalPermissionActivity : AppCompatActivity() {
 
 
     lateinit var powerManager:PowerManager
-    //var autoStartHelper: AutoStartHelper
 
     /***
      * Xiaomi
@@ -101,9 +100,6 @@ class AdditionalPermissionActivity : AppCompatActivity() {
 
         this.button_submit2.isEnabled = false
         this.button_submit2.isClickable = false
-        //autoStartHelper = AutoStartHelper()
-
-
     }
 
     override fun onBackPressed() {
@@ -116,8 +112,6 @@ class AdditionalPermissionActivity : AppCompatActivity() {
     override fun onStart() {
         super.onStart()
 
-
-        //var intent = Intent(this, UsageAccessPermissionActivity::class.java)
 
         if (Build.VERSION.SDK_INT > Build.VERSION_CODES.M){
             if (checkOtherPermissions()){
@@ -134,12 +128,6 @@ class AdditionalPermissionActivity : AppCompatActivity() {
                         finish()
                     }
                 }
-
-                //getASP()
-                //getAutoStartPermission(this)
-
-                //autoStartHelper = AutoStartHelper.instance.getAutoStartPermission(this) as AutoStartHelper
-                //autoStartHelper.getAutoStartPermission(this)
 
 
 

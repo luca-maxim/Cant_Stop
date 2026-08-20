@@ -42,53 +42,11 @@ class FeelingAfterLockActivity : AppCompatActivity() {
                 val radio3 = findViewById<RadioButton>(checkedRadioButtonId3)
                 appsArray.put(radio3.text)
 
-                // Fill the JSON with the answer and continue to the next activity
-                /*val sharedPref = getSharedPreferences("InfiniteScroll", 0)
-                val sessionQuestionnaireAnswers =
-                    sharedPref.getString("sessionQuestionnaireAnswers", "")
-                val sessionQuestionnaireJSON = JSONObject(sessionQuestionnaireAnswers)
-                    .put("feelingAboutSession", appsArray.toString())
-                Log.e("JSON", sessionQuestionnaireJSON.toString())
-                val editor: SharedPreferences.Editor = sharedPref.edit()
-                editor.putString("sessionQuestionnaireAnswers", sessionQuestionnaireJSON.toString())
-                editor.apply()*/
-
                 Toast.makeText(
                     this,
                     "Thank you!", Toast.LENGTH_SHORT
                 ).show()
 
-                /*val sessionID = sharedPref.getString("SESSION_ID", "")
-                val activity = this;
-                val context = this;
-
-                val sessionQuestionnaireFinalJSON = JSONObject()
-                val scrollSession = sharedPref.getString(
-                    "scrollSession",
-                    null
-                )
-
-                if (scrollSession != null) {
-                    sessionQuestionnaireFinalJSON.put("scrollSession", scrollSession)
-                }
-
-                sessionQuestionnaireFinalJSON.put("sessionQuestionnaire", sessionQuestionnaireJSON)*/
-
-                // As it is the last question we can send the final JSON to the server and let it create the session
-                val helper = Helper();
-                /*helper.sendRequest(
-                    context,
-                    object : VolleyCallBack {
-                        override fun onSuccess(response: JSONObject?) {
-                        }
-
-                        override fun onFailure(response: JSONObject?) {
-                        }
-                    },
-                    "/user/session/${sessionID}", "PATCH", sessionQuestionnaireFinalJSON.toString()
-                )*/
-
-                //TODO:Change Intent
                 val intent = Intent(this, MainActivity::class.java)
                 startActivity(intent)
                 overridePendingTransition(android.R.anim.fade_in, android.R.anim.fade_out)
