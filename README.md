@@ -25,9 +25,9 @@ This intervention delivers subtle vibrations that gradually increase in intensit
 <img src="images/haptic.png" alt="Haptic Intervention" width="300"/>
 
 ## Measures
+- **Individual traits** (between-subject: impulsivity, anxiety, self-control, FOMO) were collected separately from this app, outside this codebase.
 - **Contextual factors** (within-subject: at home, social situation, multitasking, current activity, sleepiness, valence, stress) and the **5 subjective intervention-effectiveness measures** (autonomy, sense of agency, satisfaction, goal alignment, usefulness in situation) were collected right after each intervention, via the in-app questionnaire participants had to fill out once they stopped scrolling (see [`rhsci1_activity.kt`](Android%20Application/app/src/main/java/com/uniulm/social_media_interventions/rhsci1_activity.kt)).
 - The **objective measure** was responsiveness — how long participants kept scrolling after an intervention appeared before closing the app — tracked automatically by the app itself (see `startDelayTimer`/`stopDelayTimer` in [`AppCheckerService.kt`](Android%20Application/app/src/main/java/com/uniulm/social_media_interventions/AppCheckerService.kt)).
-- **Individual traits** (between-subject: impulsivity, anxiety, self-control, FOMO) were collected separately from this app, outside this codebase.
 
 ## Repository Structure
 - [`Android Application/`](Android%20Application/) — the Android app (`com.uniulm.social_media_interventions`) used to run the field study: it detects short-form video sessions via an accessibility service, triggers one of the three interventions after 15 minutes of uninterrupted scrolling, and logs in-app questionnaires to Firebase.
@@ -81,10 +81,6 @@ The first time the app runs, it walks through a short onboarding flow before the
 Once onboarding is complete, the app shows a short explanation screen and then runs in the background:
 
 <img src="images/study_running.jpg" alt="Study running screen" width="160"/>
-
-After 15 minutes of uninterrupted scrolling in a tracked app (YouTube, Instagram, Facebook, or TikTok), one of the three interventions shown above triggers. Once the participant stops scrolling, they are required to fill out a short in-app questionnaire about their current context and how they experienced the intervention before they can continue (see [Measures](#measures) above and [`rhsci1_activity.kt`](Android%20Application/app/src/main/java/com/uniulm/social_media_interventions/rhsci1_activity.kt)):
-
-<img src="images/questionnaire1.jpg" alt="Post-intervention questionnaire, page 1" width="140"/> <img src="images/questionnaire2.jpg" alt="Post-intervention questionnaire, page 2" width="140"/> <img src="images/questionnaire3.jpg" alt="Post-intervention questionnaire, page 3" width="140"/> <img src="images/questionnaire4.jpg" alt="Post-intervention questionnaire, page 4" width="140"/> <img src="images/questionnaire5.jpg" alt="Post-intervention questionnaire, page 5" width="140"/>
 
 ### Troubleshooting
 - **Gradle sync fails with an "Unsupported class file major version" error:** this project uses an older Gradle version that doesn't support JDK 21. Go to **Settings → Build, Execution, Deployment → Build Tools → Gradle** and set the **Gradle JDK** to a JDK 17 install.
