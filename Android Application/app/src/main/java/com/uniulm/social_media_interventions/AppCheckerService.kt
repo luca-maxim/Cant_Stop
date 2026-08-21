@@ -17,7 +17,6 @@ import android.widget.Button
 import android.widget.TextView
 import androidx.annotation.RequiresApi
 import com.google.firebase.firestore.FirebaseFirestore
-import com.rvalerio.fgchecker.AppChecker
 import java.text.SimpleDateFormat
 import java.time.LocalDateTime
 import java.time.format.DateTimeFormatter
@@ -227,12 +226,9 @@ public class AppCheckerService : AccessibilityService() {
      */
     @RequiresApi(VERSION_CODES.O)
     fun getActiveApp(delayMillis: Int) {
-        val appChecker = AppChecker()
+        val appChecker = ForegroundAppChecker()
         val timeRunning: Long
-        if (appChecker.getForegroundApp(this) == null) {
-            return
-        }
-        val packageName: String = appChecker.getForegroundApp(this)
+        val packageName = appChecker.getForegroundApp(this) ?: return
         var app_name = getAppName(packageName)
 
         Log.e("appname", "hallo")

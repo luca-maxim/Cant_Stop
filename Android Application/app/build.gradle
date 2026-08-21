@@ -58,10 +58,8 @@ android {
 }
 
 repositories {
-    maven { url 'https://dl.bintray.com/rvalerio/maven' }
     mavenCentral()
     maven { url "https://repo.maven.apache.org/maven2" }
-    maven { url "https://maven.owncloud.org/repo/public/" }
     google()
 }
 
@@ -86,8 +84,6 @@ dependencies {
 
     implementation 'androidx.lifecycle:lifecycle-viewmodel-ktx:2.4.0'
 
-    //Tracking dependencies
-    implementation 'com.rvalerio:fgchecker:1.1.0'
     implementation 'org.jetbrains.kotlinx:kotlinx-coroutines-android:1.5.2'
 
 

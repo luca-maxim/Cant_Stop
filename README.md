@@ -48,8 +48,6 @@ cd "Android Application"
 ```
 or open the `Android Application` folder in Android Studio and run the `app` configuration.
 
-> **Known issue:** the build currently fails to resolve `com.rvalerio:fgchecker:1.1.0` (used by [`AppCheckerService.kt`](Android%20Application/app/src/main/java/com/uniulm/social_media_interventions/AppCheckerService.kt) to detect the foreground app — the core signal that triggers interventions). Its two host repositories (`dl.bintray.com`, shut down in 2021, and `maven.owncloud.org`) are both dead, and the library's original GitHub repo has been deleted. To build the app you currently need to either vendor a replacement for `fgchecker`'s `AppChecker.getForegroundApp()` (a standard `UsageStatsManager` query — the app already requests `PACKAGE_USAGE_STATS`) or locate a working mirror of the original artifact.
-
 ### Permissions
 Because the app needs to detect and interrupt scrolling in third-party apps, it requests several sensitive permissions at runtime, including Usage Access, "Draw over other apps", Accessibility Service, Notifications, and battery-optimization exemption. These are explained to participants in-app before being requested (see `strings.xml` and [`PermissionActivity.kt`](Android%20Application/app/src/main/java/com/uniulm/social_media_interventions/PermissionActivity.kt)).
 
