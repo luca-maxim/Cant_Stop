@@ -116,25 +116,21 @@ class rhsci1_activity : AppCompatActivity() {
         Log.d("RandomIndex", "Chosen random index for Attention Check: $randomIndex")
 
 
-        // Entscheidet, welcher Attention Check angezeigt wird
         val whichCard = Random.nextInt(3)
 
         when (whichCard) {
             0 -> {
-                // Zeige keinen der Attention Checks
                 Log.d("RandomIndex", "No attention check will be shown")
                 cardView1.visibility = View.GONE
                 cardView2.visibility = View.GONE
             }
             1 -> {
-                // Zeige nur cardView1 (ack1)
                 linearLayout.addView(cardView1, randomIndex)
                 cardView1.visibility = View.VISIBLE
                 cardView2.visibility = View.GONE
                 Log.d("RandomIndex", "Showing cardView1 at index $randomIndex")
             }
             2 -> {
-                // Zeige nur cardView2 (ack2)
                 linearLayout.addView(cardView2, randomIndex)
                 cardView1.visibility = View.GONE
                 cardView2.visibility = View.VISIBLE

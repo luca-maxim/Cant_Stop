@@ -70,7 +70,7 @@ class ThankActivity : AppCompatActivity() {
         if (sharedPref.getString("STUDY_END_TIMER", "DEFAULT") == "DEFAULT") {
             val editor: SharedPreferences.Editor = sharedPref.edit()
             val date = Date()
-            date.time = (date.time + 7L * 24 * 60 * 60 * 1000) // todo change to 7 days
+            date.time = (date.time + 7L * 24 * 60 * 60 * 1000)
             editor.putString("STUDY_END_TIMER", date.toString())
             editor.apply()
         }

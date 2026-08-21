@@ -102,7 +102,6 @@ class StartActivity : AppCompatActivity(){
         // If the code is already stored in shared pref, the user is already logged in -> Guide them to the main
         val code = sharedPref.getString("CODE", "true")
         val comp= sharedPref.getBoolean(isQuestionnaireCompleted.toString(),false)
-        // todo still try to login? If database changes or something app thinks its registererd -> error
 
         var permissionsgiven= true
 

@@ -73,7 +73,6 @@ public class AppCheckerService : AccessibilityService() {
     var startdelaytime_started = false
 
 
-    //    VARs Luca
     var infinte = true
     var timerStarted = false
     var isRelevantAppOpen = false
@@ -86,7 +85,6 @@ public class AppCheckerService : AccessibilityService() {
     var OverlayClicked = false
     var AppNameToBeShownInOverlay = ""
 
-    //    VARs Luca
     var lastRelevantApp: String? = null
     var isOverlayBeingDismissed = false
 
@@ -111,7 +109,6 @@ public class AppCheckerService : AccessibilityService() {
     val screenFilter = IntentFilter()
 
 
-    // VARS MANU
     var interventionType: String = ""
 
     // Spot Overlay
@@ -179,14 +176,11 @@ public class AppCheckerService : AccessibilityService() {
         registerReceiver(screenReceiver, screenFilter)
     }
 
+    /**
+     * Starts the loop which checks the foreground app.
+     */
     @RequiresApi(VERSION_CODES.O)
-
-
-            /**
-             * Starts the loop which checks the foreground app
-             */
     fun startChecker() {
-        // todo change timer to observable
         mainHandler.post(getAppTask)
     }
 
@@ -730,7 +724,7 @@ public class AppCheckerService : AccessibilityService() {
             return "IS"
         }
 
-        // Search klappt nicht
+        // Note: "Search" detection is unreliable here.
         if (content.contains("Search")) {
             return "NO IS"
         }
@@ -777,7 +771,7 @@ public class AppCheckerService : AccessibilityService() {
             return "IS"
         }
 
-        // Search klappt nicht
+        // Note: "Search" detection is unreliable here.
         if (content.contains("Search")) {
             return "NO IS"
         }
@@ -814,8 +808,8 @@ public class AppCheckerService : AccessibilityService() {
             return "IS"
         }
 
-        // IS wird getriggert wenn Videos auf Home starten
-        // home rein oder Reel raus?
+        // Note: "IS" can get triggered when videos autoplay on Home,
+        // so it's ambiguous whether Home should count as IS or not.
         if (content.contains("Home")) {
             return "NO IS"
         }

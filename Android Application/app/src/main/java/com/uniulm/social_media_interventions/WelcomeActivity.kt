@@ -86,7 +86,6 @@ class WelcomeActivity : AppCompatActivity() {
             }
 
             val code = sharedPref.getString("CODE", "true")
-            // todo still try to login? If database changes or something app thinks its registererd -> error
             if (code != null && code != "true") {
                 Log.e("CODE", code.toString())
                 val intent = Intent(this, MainActivity::class.java)
