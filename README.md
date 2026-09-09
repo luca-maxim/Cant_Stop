@@ -109,7 +109,6 @@ If you use this code or dataset, please cite the paper:
   publisher = {ACM},
   doi = {10.1145/3831979},
 }
-}
 ```
 
 ## License
